@@ -22,23 +22,30 @@ interface Props {
 
 export function CategorySidebar({ active, onSelect, counts }: Props) {
   return (
-    <nav className="space-y-1">
+    <nav className="space-y-0.5">
       {categories.map((cat) => (
         <button
           key={cat}
           onClick={() => onSelect(cat)}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+            "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
             active === cat
-              ? "bg-secondary text-secondary-foreground shadow-sm"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              ? "bg-white/15 text-white shadow-sm"
+              : "text-sidebar-foreground/80 hover:bg-white/8 hover:text-white"
           )}
         >
-          {icons[cat]}
-          <span>{cat === "all" ? "Todos" : categoryLabels[cat]}</span>
           <span className={cn(
-            "ml-auto text-xs px-2 py-0.5 rounded-full",
-            active === cat ? "bg-primary/20 text-secondary-foreground" : "bg-sidebar-accent text-sidebar-foreground"
+            "flex items-center justify-center h-6 w-6 rounded-md transition-colors",
+            active === cat ? "bg-white/20 text-white" : "text-sidebar-foreground/60"
+          )}>
+            {icons[cat]}
+          </span>
+          <span className="flex-1 text-left">{cat === "all" ? "Todos" : categoryLabels[cat]}</span>
+          <span className={cn(
+            "text-[11px] font-semibold px-1.5 py-0.5 rounded-md min-w-[22px] text-center",
+            active === cat
+              ? "bg-white/25 text-white"
+              : "bg-white/10 text-sidebar-foreground/70"
           )}>
             {counts[cat] || 0}
           </span>

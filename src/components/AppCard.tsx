@@ -12,6 +12,14 @@ const catIcons = {
   multimedia: Play,
 };
 
+const catColors: Record<string, string> = {
+  browsers: "bg-blue-100 text-blue-600",
+  development: "bg-violet-100 text-violet-600",
+  utilities: "bg-amber-100 text-amber-600",
+  communication: "bg-green-100 text-green-600",
+  multimedia: "bg-rose-100 text-rose-600",
+};
+
 interface Props {
   app: WingetApp;
   selected: boolean;
@@ -20,33 +28,51 @@ interface Props {
 
 export function AppCard({ app, selected, onToggle }: Props) {
   const Icon = catIcons[app.category];
+  const iconColor = catColors[app.category] ?? "bg-muted text-muted-foreground";
 
   return (
     <button
       onClick={() => onToggle(app.id)}
       className={cn(
-        "group relative flex items-start gap-3 p-4 rounded-xl border transition-all duration-200 text-left w-full",
+        "group relative flex items-start gap-3 p-4 rounded-xl border text-left w-full",
+        "transition-all duration-200 ease-out",
+        "hover:-translate-y-0.5 hover:shadow-md",
         selected
-          ? "bg-secondary/10 border-secondary shadow-sm ring-1 ring-secondary/30"
-          : "bg-card border-border hover:border-secondary/40 hover:shadow-md"
+          ? "bg-blue-50 border-blue-400 shadow-sm ring-1 ring-blue-300"
+          : "bg-white border-border hover:border-blue-300"
       )}
     >
       <div className={cn(
-        "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors",
-        selected ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground group-hover:bg-secondary/10 group-hover:text-secondary"
+        "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+        selected
+          ? "bg-blue-500 text-white shadow-sm shadow-blue-200"
+          : cn(iconColor, "group-hover:scale-105")
       )}>
         <Icon className="h-5 w-5" />
       </div>
+
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm text-card-foreground truncate">{app.name}</p>
-        <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{app.id}</p>
-        <span className="inline-block mt-1.5 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+        <p className={cn(
+          "font-medium text-sm truncate leading-tight mb-0.5",
+          selected ? "text-blue-700" : "text-foreground"
+        )}>
+          {app.name}
+        </p>
+        <p className="text-[11px] text-muted-foreground font-mono truncate leading-tight">{app.id}</p>
+        <span className={cn(
+          "inline-block mt-1.5 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full",
+          selected ? "bg-blue-100 text-blue-600" : "bg-muted text-muted-foreground"
+        )}>
           {categoryLabels[app.category]}
         </span>
       </div>
+
       <Checkbox
         checked={selected}
-        className="mt-1 pointer-events-none data-[state=checked]:bg-secondary data-[state=checked]:border-secondary"
+        className={cn(
+          "mt-1 pointer-events-none shrink-0 transition-all duration-200",
+          selected ? "data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500" : ""
+        )}
       />
     </button>
   );

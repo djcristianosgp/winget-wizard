@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2 } from "lucide-react";
+import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CategorySidebar } from "@/components/CategorySidebar";
@@ -8,6 +8,7 @@ import { ScriptPreview } from "@/components/ScriptPreview";
 import { ScriptOptionsPanel } from "@/components/ScriptOptionsPanel";
 import { UpgradeTab } from "@/components/UpgradeTab";
 import { useQuickSetup } from "@/hooks/useQuickSetup";
+import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
 type Tab = "install" | "upgrade";
@@ -16,12 +17,20 @@ export default function QuickSetupApp() {
   const qs = useQuickSetup();
   const [tab, setTab] = useState<Tab>("install");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [barCopied, setBarCopied] = useState(false);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: qs.sourceApps.length };
     for (const a of qs.sourceApps) c[a.category] = (c[a.category] || 0) + 1;
     return c;
   }, [qs.sourceApps]);
+
+  const handleBarCopy = async () => {
+    await navigator.clipboard.writeText(qs.script);
+    setBarCopied(true);
+    toast.success("Script copiado!");
+    setTimeout(() => setBarCopied(false), 2000);
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -36,32 +45,38 @@ export default function QuickSetupApp() {
         lg:static lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
+        {/* Logo */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-          <img src={logo} alt="QuickSetup" className="h-8 w-8" width={32} height={32} />
-          <span className="text-lg font-bold text-sidebar-primary-foreground tracking-tight">QuickSetup</span>
-          <button className="ml-auto lg:hidden text-sidebar-foreground" onClick={() => setSidebarOpen(false)}>
+          <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <img src={logo} alt="QuickSetup" className="h-6 w-6" width={24} height={24} />
+          </div>
+          <div>
+            <span className="text-sm font-bold text-white tracking-tight block leading-none">QuickSetup</span>
+            <span className="text-[10px] text-sidebar-foreground/50 leading-none mt-0.5 block">Winget Wizard</span>
+          </div>
+          <button className="ml-auto lg:hidden text-sidebar-foreground/60 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-3">
+        <div className="flex gap-1 p-3 pb-0">
           <button
             onClick={() => setTab("install")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 ${
               tab === "install"
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                ? "bg-blue-500/20 text-blue-300 shadow-inner"
+                : "text-sidebar-foreground/70 hover:bg-white/8 hover:text-sidebar-foreground"
             }`}
           >
             <Package className="h-3.5 w-3.5" /> Instalar
           </button>
           <button
             onClick={() => setTab("upgrade")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 ${
               tab === "upgrade"
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                ? "bg-blue-500/20 text-blue-300 shadow-inner"
+                : "text-sidebar-foreground/70 hover:bg-white/8 hover:text-sidebar-foreground"
             }`}
           >
             <RefreshCw className="h-3.5 w-3.5" /> Atualizar
@@ -70,8 +85,8 @@ export default function QuickSetupApp() {
 
         {tab === "install" && (
           <>
-            <div className="px-4 pt-2 pb-3">
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/60 mb-3">Categorias</p>
+            <div className="px-4 pt-4 pb-3">
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40 mb-2 px-1">Categorias</p>
               <CategorySidebar active={qs.activeCategory} onSelect={(c) => { qs.setActiveCategory(c); setSidebarOpen(false); }} counts={counts} />
             </div>
 
@@ -85,34 +100,46 @@ export default function QuickSetupApp() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-lg border-b px-4 lg:px-6 py-3 flex items-center gap-3">
-          <button className="lg:hidden text-foreground" onClick={() => setSidebarOpen(true)}>
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-border/60 px-4 lg:px-6 py-3 flex items-center gap-3 shadow-sm">
+          <button className="lg:hidden text-muted-foreground hover:text-foreground transition-colors" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
 
           {tab === "install" && (
             <>
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative flex-1 max-w-lg">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder="Buscar aplicativos (local + externa)..."
+                  placeholder="Buscar aplicativos (ex: Chrome, Git, VSCode)..."
                   value={qs.search}
                   onChange={(e) => qs.setSearch(e.target.value)}
-                  className="pl-9 h-9 text-sm"
+                  className="pl-10 h-9 text-sm bg-muted/40 border-border/60 focus:bg-white transition-colors"
                 />
               </div>
 
               <div className="hidden sm:flex items-center gap-2 ml-auto">
-                <Button size="sm" variant="outline" onClick={qs.selectAll} className="text-xs gap-1.5">
-                  <CheckSquare className="h-3.5 w-3.5" /> Selecionar todos
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={qs.selectAll}
+                  className="text-xs gap-1.5 h-8 border-border/60 hover:border-blue-300 hover:text-blue-600 transition-colors"
+                >
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  Selecionar todos
                 </Button>
-                <Button size="sm" variant="ghost" onClick={qs.clearSelection} className="text-xs gap-1.5">
-                  <XSquare className="h-3.5 w-3.5" /> Limpar
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={qs.clearSelection}
+                  className="text-xs gap-1.5 h-8 text-muted-foreground hover:text-foreground"
+                >
+                  <XSquare className="h-3.5 w-3.5" />
+                  Limpar
                 </Button>
               </div>
 
               {qs.selectedApps.length > 0 && (
-                <div className="flex items-center gap-1.5 bg-secondary/10 text-secondary px-3 py-1.5 rounded-full">
+                <div className="flex items-center gap-1.5 bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded-full">
                   <Zap className="h-3.5 w-3.5" />
                   <span className="text-xs font-semibold">{qs.selectedApps.length} selecionados</span>
                 </div>
@@ -121,8 +148,8 @@ export default function QuickSetupApp() {
           )}
 
           {tab === "upgrade" && (
-            <h1 className="text-lg font-bold flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-secondary" /> Atualizar Aplicativos
+            <h1 className="text-base font-bold flex items-center gap-2 text-foreground">
+              <RefreshCw className="h-4 w-4 text-blue-500" /> Atualizar Aplicativos
             </h1>
           )}
         </header>
@@ -132,28 +159,36 @@ export default function QuickSetupApp() {
           {tab === "install" ? (
             <>
               {/* App Grid */}
-              <main className="flex-1 overflow-auto p-4 lg:p-6 scrollbar-thin">
-                <p className="mb-3 text-xs text-muted-foreground">
+              <main className="flex-1 overflow-auto p-5 lg:p-6 scrollbar-thin bg-background">
+                <p className="mb-4 text-xs text-muted-foreground bg-muted/50 border border-border/50 rounded-lg px-3 py-2 inline-block">
                   Busca unificada: resultados locais e externos. A fonte externa aparece com 2+ caracteres.
                 </p>
 
                 {qs.remoteError && (
-                  <p className="mb-3 text-sm text-destructive">{qs.remoteError}</p>
+                  <div className="mb-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+                    {qs.remoteError}
+                  </div>
                 )}
 
                 {qs.filteredApps.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-                    <Search className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                    <p className="text-muted-foreground">
-                      Nenhum aplicativo encontrado
-                    </p>
+                  <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+                    <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4 border border-border/50">
+                      <Search className="h-7 w-7 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Nenhum aplicativo encontrado</p>
+                    <p className="text-xs text-muted-foreground/60">Tente outro termo de busca</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-7">
                     {qs.localFilteredApps.length > 0 && (
                       <section>
-                        <h2 className="mb-3 text-xs uppercase tracking-widest font-semibold text-muted-foreground">Local</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <h2 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Local</h2>
+                          <span className="text-[11px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
+                            {qs.localFilteredApps.length}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5">
                           {qs.localFilteredApps.map((app) => (
                             <AppCard
                               key={app.id}
@@ -167,17 +202,26 @@ export default function QuickSetupApp() {
                     )}
 
                     <section>
-                      <div className="mb-3 flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-3">
                         <h2 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Externa</h2>
-                        {qs.remoteLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                        {qs.remoteLoading
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          : qs.externalFilteredApps.length > 0 && (
+                            <span className="text-[11px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
+                              {qs.externalFilteredApps.length}
+                            </span>
+                          )
+                        }
                       </div>
 
                       {qs.search.trim().length < 2 ? (
-                        <p className="text-sm text-muted-foreground">Digite pelo menos 2 caracteres para buscar na API.</p>
-                      ) : qs.externalFilteredApps.length === 0 ? (
+                        <p className="text-sm text-muted-foreground bg-muted/40 border border-border/40 rounded-lg px-4 py-3 inline-block">
+                          Digite pelo menos 2 caracteres para buscar na API.
+                        </p>
+                      ) : qs.externalFilteredApps.length === 0 && !qs.remoteLoading ? (
                         <p className="text-sm text-muted-foreground">Nenhum resultado externo para esta busca.</p>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5">
                           {qs.externalFilteredApps.map((app) => (
                             <AppCard
                               key={app.id}
@@ -193,18 +237,24 @@ export default function QuickSetupApp() {
                 )}
               </main>
 
-              {/* Script Panel */}
-              <aside className="hidden lg:block w-80 xl:w-96 border-l bg-card/50 p-5 overflow-auto scrollbar-thin">
-                <ScriptPreview
-                  script={qs.script}
-                  scriptBat={qs.scriptBat}
-                  scriptPs1={qs.scriptPs1}
-                  count={qs.selectedApps.length}
-                />
+              {/* Script Panel — sidebar right */}
+              <aside className="hidden lg:flex w-80 xl:w-96 border-l border-border/60 bg-gray-950 flex-col overflow-auto scrollbar-thin">
+                {/* Panel header */}
+                <div className="px-5 pt-5 pb-4 border-b border-gray-800">
+                  <h2 className="text-xs uppercase tracking-widest font-semibold text-gray-500">Painel do Script</h2>
+                </div>
+                <div className="flex-1 p-5">
+                  <ScriptPreview
+                    script={qs.script}
+                    scriptBat={qs.scriptBat}
+                    scriptPs1={qs.scriptPs1}
+                    count={qs.selectedApps.length}
+                  />
+                </div>
               </aside>
             </>
           ) : (
-            <main className="flex-1 overflow-auto p-4 lg:p-6 max-w-2xl">
+            <main className="flex-1 overflow-auto p-5 lg:p-6 max-w-2xl">
               <UpgradeTab />
             </main>
           )}
@@ -212,7 +262,7 @@ export default function QuickSetupApp() {
 
         {/* Mobile script panel */}
         {tab === "install" && qs.selectedApps.length > 0 && (
-          <div className="lg:hidden border-t bg-card p-4">
+          <div className="lg:hidden border-t border-border/60 bg-gray-950 p-4">
             <ScriptPreview
               script={qs.script}
               scriptBat={qs.scriptBat}
@@ -222,6 +272,34 @@ export default function QuickSetupApp() {
           </div>
         )}
       </div>
+
+      {/* Sticky selection bar */}
+      {tab === "install" && qs.selectedApps.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 lg:left-[calc(50%+8rem)] lg:-translate-x-1/2">
+          <div className="flex items-center gap-3 bg-white border border-border shadow-2xl shadow-black/15 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
+                <span className="text-[11px] text-white font-bold">{qs.selectedApps.length}</span>
+              </div>
+              <span>
+                {qs.selectedApps.length} {qs.selectedApps.length === 1 ? "app selecionado" : "apps selecionados"}
+              </span>
+            </div>
+            <div className="h-4 w-px bg-border" />
+            <button
+              onClick={handleBarCopy}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                barCopied
+                  ? "bg-green-500 text-white shadow-sm shadow-green-200"
+                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200"
+              }`}
+            >
+              {barCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {barCopied ? "Copiado!" : "Copiar Script"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

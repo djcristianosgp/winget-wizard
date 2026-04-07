@@ -1,6 +1,8 @@
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ScriptOptions } from "@/hooks/useQuickSetup";
 
 interface Props {
@@ -13,52 +15,92 @@ export function ScriptOptionsPanel({ options, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-foreground">Opções do Script</h3>
+      <div className="flex items-center gap-2">
+        <Settings className="h-3.5 w-3.5 text-sidebar-foreground/60" />
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/60">
+          Configurações de instalação
+        </h3>
+      </div>
 
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="silent" className="text-xs text-muted-foreground">Instalação silenciosa</Label>
-          <Switch id="silent" checked={options.silent} onCheckedChange={(v) => update({ silent: v })} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Label htmlFor="silent" className="text-xs font-medium text-sidebar-foreground cursor-pointer">
+              Instalação silenciosa
+            </Label>
+            <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Oculta janelas e prompts</p>
+          </div>
+          <Switch
+            id="silent"
+            checked={options.silent}
+            onCheckedChange={(v) => update({ silent: v })}
+            className="mt-0.5 shrink-0"
+          />
         </div>
 
-        <div className="flex items-center justify-between">
-          <Label htmlFor="accept" className="text-xs text-muted-foreground">Aceitar termos</Label>
-          <Switch id="accept" checked={options.acceptAgreements} onCheckedChange={(v) => update({ acceptAgreements: v })} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Label htmlFor="accept" className="text-xs font-medium text-sidebar-foreground cursor-pointer">
+              Aceitar termos automaticamente
+            </Label>
+            <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Aceita licenças sem confirmação</p>
+          </div>
+          <Switch
+            id="accept"
+            checked={options.acceptAgreements}
+            onCheckedChange={(v) => update({ acceptAgreements: v })}
+            className="mt-0.5 shrink-0"
+          />
         </div>
 
-        <div className="flex items-center justify-between">
-          <Label htmlFor="nointeract" className="text-xs text-muted-foreground">Sem interação</Label>
-          <Switch id="nointeract" checked={options.disableInteractivity} onCheckedChange={(v) => update({ disableInteractivity: v })} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Label htmlFor="nointeract" className="text-xs font-medium text-sidebar-foreground cursor-pointer">
+              Sem interação do usuário
+            </Label>
+            <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Desabilita prompts interativos</p>
+          </div>
+          <Switch
+            id="nointeract"
+            checked={options.disableInteractivity}
+            onCheckedChange={(v) => update({ disableInteractivity: v })}
+            className="mt-0.5 shrink-0"
+          />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Escopo</Label>
-        <div className="flex gap-1">
+      <div className="space-y-2 pt-1">
+        <Label className="text-xs font-medium text-sidebar-foreground">Escopo de instalação</Label>
+        <p className="text-[10px] text-sidebar-foreground/50">Define onde os apps serão instalados</p>
+        <div className="flex gap-1 mt-1.5">
           {(["none", "user", "machine"] as const).map((s) => (
             <button
               key={s}
               onClick={() => update({ scope: s })}
-              className={`flex-1 text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+              className={cn(
+                "flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-all duration-150",
                 options.scope === s
-                  ? "bg-secondary text-secondary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
+                  ? "bg-white/20 text-white shadow-sm"
+                  : "bg-white/5 text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground"
+              )}
             >
-              {s === "none" ? "Padrão" : s}
+              {s === "none" ? "Padrão" : s === "user" ? "Usuário" : "Sistema"}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="version" className="text-xs text-muted-foreground">Versão específica</Label>
+      <div className="space-y-1.5 pt-1">
+        <Label htmlFor="version" className="text-xs font-medium text-sidebar-foreground">
+          Versão específica
+        </Label>
+        <p className="text-[10px] text-sidebar-foreground/50">Deixe vazio para usar a mais recente</p>
         <Input
           id="version"
           placeholder="ex: 1.0.0"
           value={options.version}
           onChange={(e) => update({ version: e.target.value })}
-          className="h-8 text-xs"
+          className="h-8 text-xs mt-1.5 bg-white/5 border-white/10 text-sidebar-foreground placeholder:text-sidebar-foreground/30 focus:border-blue-400/50"
         />
       </div>
     </div>
