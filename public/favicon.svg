@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Winget Wizard</title>
+  <desc id="desc">Icone com caixa e terminal representando instalacao de apps</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#0f766e" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" />
+  <rect x="12" y="14" width="40" height="18" rx="4" fill="#0b1220" stroke="#7dd3fc" stroke-width="2" />
+  <path d="M18 23l5-4-5-4" fill="none" stroke="#e2e8f0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="26" y1="23" x2="34" y2="23" stroke="#e2e8f0" stroke-width="2.4" stroke-linecap="round" />
+  <path d="M16 36h32l-3.5 12H19.5z" fill="#93c5fd" opacity="0.9" />
+  <path d="M28 40h8" stroke="#1e3a8a" stroke-width="2.2" stroke-linecap="round" />
+</svg>

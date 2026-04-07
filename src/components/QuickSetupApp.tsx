@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap } from "lucide-react";
+import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CategorySidebar } from "@/components/CategorySidebar";
@@ -8,8 +8,6 @@ import { ScriptPreview } from "@/components/ScriptPreview";
 import { ScriptOptionsPanel } from "@/components/ScriptOptionsPanel";
 import { UpgradeTab } from "@/components/UpgradeTab";
 import { useQuickSetup } from "@/hooks/useQuickSetup";
-import { apps } from "@/data/apps";
-import type { AppCategory } from "@/data/apps";
 import logo from "@/assets/logo.png";
 
 type Tab = "install" | "upgrade";
@@ -20,10 +18,10 @@ export default function QuickSetupApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: apps.length };
-    for (const a of apps) c[a.category] = (c[a.category] || 0) + 1;
+    const c: Record<string, number> = { all: qs.sourceApps.length };
+    for (const a of qs.sourceApps) c[a.category] = (c[a.category] || 0) + 1;
     return c;
-  }, []);
+  }, [qs.sourceApps]);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -97,7 +95,7 @@ export default function QuickSetupApp() {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar aplicativos..."
+                  placeholder="Buscar aplicativos (local + externa)..."
                   value={qs.search}
                   onChange={(e) => qs.setSearch(e.target.value)}
                   className="pl-9 h-9 text-sm"
@@ -135,21 +133,62 @@ export default function QuickSetupApp() {
             <>
               {/* App Grid */}
               <main className="flex-1 overflow-auto p-4 lg:p-6 scrollbar-thin">
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Busca unificada: resultados locais e externos. A fonte externa aparece com 2+ caracteres.
+                </p>
+
+                {qs.remoteError && (
+                  <p className="mb-3 text-sm text-destructive">{qs.remoteError}</p>
+                )}
+
                 {qs.filteredApps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
                     <Search className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                    <p className="text-muted-foreground">Nenhum aplicativo encontrado</p>
+                    <p className="text-muted-foreground">
+                      Nenhum aplicativo encontrado
+                    </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-                    {qs.filteredApps.map((app) => (
-                      <AppCard
-                        key={app.id}
-                        app={app}
-                        selected={qs.selectedIds.has(app.id)}
-                        onToggle={qs.toggleApp}
-                      />
-                    ))}
+                  <div className="space-y-6">
+                    {qs.localFilteredApps.length > 0 && (
+                      <section>
+                        <h2 className="mb-3 text-xs uppercase tracking-widest font-semibold text-muted-foreground">Local</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                          {qs.localFilteredApps.map((app) => (
+                            <AppCard
+                              key={app.id}
+                              app={app}
+                              selected={qs.selectedIds.has(app.id)}
+                              onToggle={qs.toggleApp}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    <section>
+                      <div className="mb-3 flex items-center gap-2">
+                        <h2 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Externa</h2>
+                        {qs.remoteLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                      </div>
+
+                      {qs.search.trim().length < 2 ? (
+                        <p className="text-sm text-muted-foreground">Digite pelo menos 2 caracteres para buscar na API.</p>
+                      ) : qs.externalFilteredApps.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Nenhum resultado externo para esta busca.</p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                          {qs.externalFilteredApps.map((app) => (
+                            <AppCard
+                              key={app.id}
+                              app={app}
+                              selected={qs.selectedIds.has(app.id)}
+                              onToggle={qs.toggleApp}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
                   </div>
                 )}
               </main>
