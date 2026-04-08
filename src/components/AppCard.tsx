@@ -1,8 +1,8 @@
-import type { WingetApp } from "@/data/apps";
+import type { SetupApp } from "@/data/apps";
 import { categoryLabels } from "@/data/apps";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Globe, Code, Wrench, MessageCircle, Play } from "lucide-react";
+import { Globe, Code, Wrench, MessageCircle, Play, Ban } from "lucide-react";
 
 const catIcons = {
   browsers: Globe,
@@ -21,22 +21,26 @@ const catColors: Record<string, string> = {
 };
 
 interface Props {
-  app: WingetApp;
+  app: SetupApp;
   selected: boolean;
+  available: boolean;
+  packageName?: string;
   onToggle: (id: string) => void;
 }
 
-export function AppCard({ app, selected, onToggle }: Props) {
+export function AppCard({ app, selected, available, packageName, onToggle }: Props) {
   const Icon = catIcons[app.category];
   const iconColor = catColors[app.category] ?? "bg-muted text-muted-foreground";
 
   return (
     <button
       onClick={() => onToggle(app.id)}
+      disabled={!available}
       className={cn(
         "group relative flex items-start gap-3 p-4 rounded-xl border text-left w-full",
         "transition-all duration-200 ease-out",
-        "hover:-translate-y-0.5 hover:shadow-md",
+        available && "hover:-translate-y-0.5 hover:shadow-md",
+        !available && "opacity-70 cursor-not-allowed border-dashed",
         selected
           ? "bg-blue-50 border-blue-400 shadow-sm ring-1 ring-blue-300"
           : "bg-white border-border hover:border-blue-300"
@@ -58,13 +62,19 @@ export function AppCard({ app, selected, onToggle }: Props) {
         )}>
           {app.name}
         </p>
-        <p className="text-[11px] text-muted-foreground font-mono truncate leading-tight">{app.id}</p>
+        <p className="text-[11px] text-muted-foreground font-mono truncate leading-tight">{packageName ?? app.id}</p>
         <span className={cn(
           "inline-block mt-1.5 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full",
           selected ? "bg-blue-100 text-blue-600" : "bg-muted text-muted-foreground"
         )}>
           {categoryLabels[app.category]}
         </span>
+        {!available && (
+          <p className="mt-1.5 text-[11px] text-amber-700 bg-amber-100 inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium">
+            <Ban className="h-3 w-3" />
+            Nao disponivel para este sistema
+          </p>
+        )}
       </div>
 
       <Checkbox
