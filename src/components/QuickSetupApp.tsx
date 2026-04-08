@@ -138,7 +138,15 @@ export default function QuickSetupApp() {
               <div className="relative flex-1 max-w-lg">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder={qs.platform === "windows" ? "Buscar aplicativos (ex: Chrome, Git, VSCode)..." : "Buscar aplicativos locais por nome..."}
+                  placeholder={
+                    qs.platform === "windows"
+                      ? "Buscar aplicativos (ex: Chrome, Git, VSCode)..."
+                      : qs.platform === "macos"
+                        ? "Buscar aplicativos (ex: git, node, firefox)..."
+                        : qs.linuxDistro === "flatpak"
+                          ? "Buscar no Flathub (ex: VLC, GIMP, Discord)..."
+                          : "Buscar aplicativos locais por nome..."
+                  }
                   value={qs.search}
                   onChange={(e) => qs.setSearch(e.target.value)}
                   className="pl-10 h-9 text-sm bg-muted/40 border-border/60 focus:bg-white transition-colors"
@@ -170,6 +178,14 @@ export default function QuickSetupApp() {
                     }`}
                   >
                     Arch (pacman)
+                  </button>
+                  <button
+                    onClick={() => qs.setLinuxDistro("flatpak")}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      qs.linuxDistro === "flatpak" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Flatpak
                   </button>
                 </div>
               )}
@@ -217,10 +233,20 @@ export default function QuickSetupApp() {
             <>
               {/* App Grid */}
               <main className="flex-1 overflow-auto p-5 lg:p-6 scrollbar-thin bg-background">
-                <p className="mb-4 text-xs text-muted-foreground bg-muted/50 border border-border/50 rounded-lg px-3 py-2 inline-block">
+                <p className="mb-4 text-xs text-muted-foreground bg-muted/50 border border-border/50 rounded-lg px-3 py-2 inline-flex items-center gap-2">
                   {qs.packageManager === "winget"
-                    ? "Busca unificada: resultados locais e externos. A fonte externa aparece com 2+ caracteres."
-                    : "Busca local por catalogo da aplicacao para o sistema selecionado."}
+                    ? "Busca unificada: resultados locais e externos (winget.run). A fonte externa aparece com 2+ caracteres."
+                    : qs.packageManager === "brew"
+                      ? "Busca unificada: resultados locais e externos (Homebrew). A fonte externa aparece com 2+ caracteres."
+                      : qs.packageManager === "flatpak"
+                        ? "Busca unificada: resultados locais e externos (Flathub). A fonte externa aparece com 2+ caracteres."
+                        : "Busca local por catalogo da aplicacao para o sistema selecionado."}
+                  {(qs.packageManager === "winget" || qs.packageManager === "brew" || qs.packageManager === "flatpak") && (
+                    <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                      <RefreshCw className="h-3 w-3" />
+                      Dados atualizados automaticamente
+                    </span>
+                  )}
                 </p>
 
                 {qs.platform === "linux" && (
@@ -229,6 +255,7 @@ export default function QuickSetupApp() {
                     <button onClick={() => qs.setLinuxDistro("apt")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "apt" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Ubuntu/Debian (apt)</button>
                     <button onClick={() => qs.setLinuxDistro("dnf")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "dnf" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Fedora (dnf)</button>
                     <button onClick={() => qs.setLinuxDistro("pacman")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "pacman" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Arch (pacman)</button>
+                    <button onClick={() => qs.setLinuxDistro("flatpak")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "flatpak" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Flatpak</button>
                   </div>
                 )}
 
@@ -271,9 +298,11 @@ export default function QuickSetupApp() {
                       </section>
                     )}
 
-                    {qs.packageManager === "winget" && <section>
+                    {(qs.packageManager === "winget" || qs.packageManager === "brew" || qs.packageManager === "flatpak") && <section>
                       <div className="flex items-center gap-2 mb-3">
-                        <h2 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Externa</h2>
+                        <h2 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">
+                          {qs.packageManager === "brew" ? "Homebrew" : qs.packageManager === "flatpak" ? "Flathub" : "Externa"}
+                        </h2>
                         {qs.remoteLoading
                           ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                           : qs.externalFilteredApps.length > 0 && (
@@ -288,7 +317,20 @@ export default function QuickSetupApp() {
                         <p className="text-sm text-muted-foreground bg-muted/40 border border-border/40 rounded-lg px-4 py-3 inline-block">
                           Digite pelo menos 2 caracteres para buscar na API.
                         </p>
-                      ) : qs.externalFilteredApps.length === 0 && !qs.remoteLoading ? (
+                      ) : qs.remoteLoading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5">
+                          {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="flex items-start gap-3 p-4 rounded-xl border border-border/50 bg-muted/20 animate-pulse">
+                              <div className="mt-0.5 h-10 w-10 shrink-0 rounded-lg bg-muted" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-3 w-3/4 rounded bg-muted" />
+                                <div className="h-2 w-1/2 rounded bg-muted" />
+                                <div className="h-4 w-16 rounded-full bg-muted" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : qs.externalFilteredApps.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Nenhum resultado externo para esta busca.</p>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5">

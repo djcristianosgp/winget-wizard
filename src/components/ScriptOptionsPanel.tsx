@@ -16,6 +16,7 @@ export function ScriptOptionsPanel({ options, packageManager, onChange }: Props)
   const update = (partial: Partial<ScriptOptions>) => onChange({ ...options, ...partial });
   const isWindows = packageManager === "winget";
   const isLinux = packageManager === "apt" || packageManager === "dnf" || packageManager === "pacman";
+  const isFlatpak = packageManager === "flatpak";
 
   return (
     <div className="space-y-4">
@@ -142,10 +143,29 @@ export function ScriptOptionsPanel({ options, packageManager, onChange }: Props)
         </div>
       )}
 
-      {!isWindows && !isLinux && (
+      {!isWindows && !isLinux && !isFlatpak && (
         <p className="text-[11px] text-sidebar-foreground/60 bg-white/5 rounded-md px-3 py-2 border border-white/10">
           Homebrew usa modo simples. Sem opções adicionais nesta etapa.
         </p>
+      )}
+
+      {isFlatpak && (
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <Label htmlFor="linuxauto" className="text-xs font-medium text-sidebar-foreground cursor-pointer">
+                Confirmação automática
+              </Label>
+              <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Instala sem confirmação manual (-y)</p>
+            </div>
+            <Switch
+              id="linuxauto"
+              checked={options.linuxAutoYes}
+              onCheckedChange={(v) => update({ linuxAutoYes: v })}
+              className="mt-0.5 shrink-0"
+            />
+          </div>
+        </div>
       )}
     </div>
   );

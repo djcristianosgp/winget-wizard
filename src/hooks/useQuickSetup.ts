@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { apps, type AppCategory, type LinuxDistro, type OSPlatform, type PackageManager, type SetupApp } from "@/data/apps";
+import { searchBrew } from "@/lib/providers/brew";
+import { searchFlatpak } from "@/lib/providers/flatpak";
+import { inferCategory as inferCategoryFromText } from "@/lib/providers/types";
 
 export interface ScriptOptions {
   silent: boolean;
@@ -27,12 +30,7 @@ function inferCategory(pkg: WingetApiPackage): AppCategory {
   const desc = pkg.Latest?.Description?.toLowerCase() ?? "";
   const tags = (pkg.Latest?.Tags ?? []).join(" ").toLowerCase();
   const text = `${name} ${desc} ${tags}`;
-
-  if (/(browser|firefox|chrome|edge|opera|brave)/.test(text)) return "browsers";
-  if (/(stream|obs|video|audio|media|codec|capture|record|edit)/.test(text)) return "multimedia";
-  if (/(chat|email|message|discord|slack|teams|telegram|zoom|meeting)/.test(text)) return "communication";
-  if (/(dev|sdk|cli|code|git|docker|kubernetes|database|sql|python|node|java)/.test(text)) return "development";
-  return "utilities";
+  return inferCategoryFromText(text);
 }
 
 const defaultOptions: ScriptOptions = {
@@ -82,7 +80,7 @@ export function useQuickSetup() {
 
   useEffect(() => {
     const query = search.trim();
-    if (platform !== "windows" || query.length < 2) {
+    if (query.length < 2) {
       setRemoteApps([]);
       setRemoteLoading(false);
       setRemoteError(null);
@@ -95,34 +93,68 @@ export function useQuickSetup() {
         setRemoteLoading(true);
         setRemoteError(null);
 
-        const params = new URLSearchParams({
-          query,
-          take: "24",
-          page: "0",
-          partialMatch: "true",
-          preferContains: "true",
-        });
+        if (platform === "windows") {
+          // Winget API via winget.run
+          const params = new URLSearchParams({
+            query,
+            take: "24",
+            page: "0",
+            partialMatch: "true",
+            preferContains: "true",
+          });
 
-        const response = await fetch(`${apiBaseUrl}/v2/packages?${params.toString()}`, {
-          signal: controller.signal,
-        });
+          const response = await fetch(`${apiBaseUrl}/v2/packages?${params.toString()}`, {
+            signal: controller.signal,
+          });
 
-        if (!response.ok) {
-          throw new Error(`Falha na API (${response.status})`);
+          if (!response.ok) {
+            throw new Error(`Falha na API (${response.status})`);
+          }
+
+          const data = (await response.json()) as { Packages?: WingetApiPackage[] };
+          const mapped = (data.Packages ?? []).map((pkg) => ({
+            id: pkg.Id,
+            winget: pkg.Id,
+            name: pkg.Latest?.Name?.trim() || pkg.Id,
+            category: inferCategory(pkg),
+          } satisfies SetupApp));
+
+          setRemoteApps(mapped);
+        } else if (platform === "macos") {
+          // Homebrew API
+          const results = await searchBrew(query, 24, controller.signal);
+          const mapped: SetupApp[] = results.map((r) => ({
+            id: r.id,
+            name: r.name,
+            category: r.category,
+            description: r.description,
+            version: r.version,
+            brew: r.brew,
+          }));
+          setRemoteApps(mapped);
+        } else if (platform === "linux" && linuxDistro === "flatpak") {
+          // Flathub API
+          const results = await searchFlatpak(query, 24, controller.signal);
+          const mapped: SetupApp[] = results.map((r) => ({
+            id: r.id,
+            name: r.name,
+            category: r.category,
+            description: r.description,
+            flatpak: r.flatpak,
+          }));
+          setRemoteApps(mapped);
+        } else {
+          setRemoteApps([]);
         }
-
-        const data = (await response.json()) as { Packages?: WingetApiPackage[] };
-        const mapped = (data.Packages ?? []).map((pkg) => ({
-          id: pkg.Id,
-          winget: pkg.Id,
-          name: pkg.Latest?.Name?.trim() || pkg.Id,
-          category: inferCategory(pkg),
-        } satisfies SetupApp));
-
-        setRemoteApps(mapped);
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
-        setRemoteError("Nao foi possivel buscar na API do winget.run.");
+        if (platform === "windows") {
+          setRemoteError("Nao foi possivel buscar na API do winget.run.");
+        } else if (platform === "macos") {
+          setRemoteError("Nao foi possivel buscar na API do Homebrew.");
+        } else {
+          setRemoteError("Nao foi possivel buscar na API do Flathub.");
+        }
         setRemoteApps([]);
       } finally {
         setRemoteLoading(false);
@@ -133,7 +165,7 @@ export function useQuickSetup() {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [search, platform]);
+  }, [search, platform, linuxDistro]);
 
   const localFilteredApps = useMemo(() => {
     return apps.filter((app) => {
@@ -149,7 +181,12 @@ export function useQuickSetup() {
   }, [search, activeCategory, packageManager]);
 
   const externalFilteredApps = useMemo(() => {
-    if (packageManager !== "winget" || search.trim().length < 2) return [];
+    const hasExternalSearch =
+      packageManager === "winget" ||
+      packageManager === "brew" ||
+      packageManager === "flatpak";
+
+    if (!hasExternalSearch || search.trim().length < 2) return [];
 
     const localIds = new Set(localFilteredApps.map((a) => a.id));
     return remoteApps.filter((app) => {
@@ -261,6 +298,9 @@ export function useQuickSetup() {
       }
       if (packageManager === "dnf") {
         return `${sudoPrefix}dnf install ${options.linuxAutoYes ? "-y " : ""}${pkg}`.trim();
+      }
+      if (packageManager === "flatpak") {
+        return `flatpak install ${options.linuxAutoYes ? "-y " : ""}flathub ${pkg}`.trim();
       }
       return `${sudoPrefix}pacman -S ${options.linuxAutoYes ? "--noconfirm " : ""}${pkg}`.trim();
     },
