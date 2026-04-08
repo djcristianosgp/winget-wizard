@@ -1,19 +1,23 @@
 export type AppCategory = "browsers" | "development" | "utilities" | "communication" | "multimedia";
 
 export type OSPlatform = "windows" | "macos" | "linux";
-export type LinuxDistro = "apt" | "dnf" | "pacman";
+export type LinuxDistro = "apt" | "dnf" | "pacman" | "flatpak";
 export type PackageManager = "winget" | "brew" | LinuxDistro;
 
 export interface SetupApp {
   id: string;
   name: string;
   category: AppCategory;
+  description?: string;
+  version?: string;
   icon?: string;
   winget?: string;
   brew?: string;
   apt?: string;
   dnf?: string;
   pacman?: string;
+  /** Flatpak application id */
+  flatpak?: string;
 }
 
 export const categoryLabels: Record<AppCategory, string> = {

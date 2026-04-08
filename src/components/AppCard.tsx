@@ -63,6 +63,9 @@ export function AppCard({ app, selected, available, packageName, onToggle }: Pro
           {app.name}
         </p>
         <p className="text-[11px] text-muted-foreground font-mono truncate leading-tight">{packageName ?? app.id}</p>
+        {app.description && (
+          <p className="text-[11px] text-muted-foreground/70 truncate leading-tight mt-0.5">{app.description}</p>
+        )}
         <span className={cn(
           "inline-block mt-1.5 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full",
           selected ? "bg-blue-100 text-blue-600" : "bg-muted text-muted-foreground"
