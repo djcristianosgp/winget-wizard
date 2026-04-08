@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2, Copy, Check } from "lucide-react";
+import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2, Copy, Check, Monitor, Apple, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CategorySidebar } from "@/components/CategorySidebar";
@@ -20,10 +20,11 @@ export default function QuickSetupApp() {
   const [barCopied, setBarCopied] = useState(false);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: qs.sourceApps.length };
-    for (const a of qs.sourceApps) c[a.category] = (c[a.category] || 0) + 1;
+    const available = qs.sourceApps.filter((a) => qs.isAppAvailable(a));
+    const c: Record<string, number> = { all: available.length };
+    for (const a of available) c[a.category] = (c[a.category] || 0) + 1;
     return c;
-  }, [qs.sourceApps]);
+  }, [qs.sourceApps, qs.isAppAvailable]);
 
   const handleBarCopy = async () => {
     await navigator.clipboard.writeText(qs.script);
@@ -91,7 +92,7 @@ export default function QuickSetupApp() {
             </div>
 
             <div className="mt-auto border-t border-sidebar-border p-4">
-              <ScriptOptionsPanel options={qs.options} onChange={qs.setOptions} />
+              <ScriptOptionsPanel options={qs.options} packageManager={qs.packageManager} onChange={qs.setOptions} />
             </div>
           </>
         )}
@@ -107,15 +108,71 @@ export default function QuickSetupApp() {
 
           {tab === "install" && (
             <>
+              <div className="hidden md:flex items-center gap-1 rounded-xl bg-muted/50 border border-border/60 p-1">
+                <button
+                  onClick={() => qs.setPlatform("windows")}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    qs.platform === "windows" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Monitor className="h-3.5 w-3.5" /> Windows
+                </button>
+                <button
+                  onClick={() => qs.setPlatform("macos")}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    qs.platform === "macos" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Apple className="h-3.5 w-3.5" /> MacOS
+                </button>
+                <button
+                  onClick={() => qs.setPlatform("linux")}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    qs.platform === "linux" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Terminal className="h-3.5 w-3.5" /> Linux
+                </button>
+              </div>
+
               <div className="relative flex-1 max-w-lg">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder="Buscar aplicativos (ex: Chrome, Git, VSCode)..."
+                  placeholder={qs.platform === "windows" ? "Buscar aplicativos (ex: Chrome, Git, VSCode)..." : "Buscar aplicativos locais por nome..."}
                   value={qs.search}
                   onChange={(e) => qs.setSearch(e.target.value)}
                   className="pl-10 h-9 text-sm bg-muted/40 border-border/60 focus:bg-white transition-colors"
                 />
               </div>
+
+              {qs.platform === "linux" && (
+                <div className="hidden xl:flex items-center gap-1 rounded-xl bg-muted/50 border border-border/60 p-1">
+                  <button
+                    onClick={() => qs.setLinuxDistro("apt")}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      qs.linuxDistro === "apt" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Ubuntu/Debian (apt)
+                  </button>
+                  <button
+                    onClick={() => qs.setLinuxDistro("dnf")}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      qs.linuxDistro === "dnf" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Fedora (dnf)
+                  </button>
+                  <button
+                    onClick={() => qs.setLinuxDistro("pacman")}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      qs.linuxDistro === "pacman" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Arch (pacman)
+                  </button>
+                </div>
+              )}
 
               <div className="hidden sm:flex items-center gap-2 ml-auto">
                 <Button
@@ -161,8 +218,19 @@ export default function QuickSetupApp() {
               {/* App Grid */}
               <main className="flex-1 overflow-auto p-5 lg:p-6 scrollbar-thin bg-background">
                 <p className="mb-4 text-xs text-muted-foreground bg-muted/50 border border-border/50 rounded-lg px-3 py-2 inline-block">
-                  Busca unificada: resultados locais e externos. A fonte externa aparece com 2+ caracteres.
+                  {qs.packageManager === "winget"
+                    ? "Busca unificada: resultados locais e externos. A fonte externa aparece com 2+ caracteres."
+                    : "Busca local por catalogo da aplicacao para o sistema selecionado."}
                 </p>
+
+                {qs.platform === "linux" && (
+                  <div className="mb-4 text-xs text-foreground bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 inline-flex items-center gap-2">
+                    <span className="font-semibold">Distribuição:</span>
+                    <button onClick={() => qs.setLinuxDistro("apt")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "apt" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Ubuntu/Debian (apt)</button>
+                    <button onClick={() => qs.setLinuxDistro("dnf")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "dnf" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Fedora (dnf)</button>
+                    <button onClick={() => qs.setLinuxDistro("pacman")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "pacman" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Arch (pacman)</button>
+                  </div>
+                )}
 
                 {qs.remoteError && (
                   <div className="mb-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
@@ -194,6 +262,8 @@ export default function QuickSetupApp() {
                               key={app.id}
                               app={app}
                               selected={qs.selectedIds.has(app.id)}
+                              available={qs.isAppAvailable(app)}
+                              packageName={qs.getAppPackage(app)}
                               onToggle={qs.toggleApp}
                             />
                           ))}
@@ -201,7 +271,7 @@ export default function QuickSetupApp() {
                       </section>
                     )}
 
-                    <section>
+                    {qs.packageManager === "winget" && <section>
                       <div className="flex items-center gap-2 mb-3">
                         <h2 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Externa</h2>
                         {qs.remoteLoading
@@ -227,12 +297,14 @@ export default function QuickSetupApp() {
                               key={app.id}
                               app={app}
                               selected={qs.selectedIds.has(app.id)}
+                              available={qs.isAppAvailable(app)}
+                              packageName={qs.getAppPackage(app)}
                               onToggle={qs.toggleApp}
                             />
                           ))}
                         </div>
                       )}
-                    </section>
+                    </section>}
                   </div>
                 )}
               </main>
@@ -248,6 +320,8 @@ export default function QuickSetupApp() {
                     script={qs.script}
                     scriptBat={qs.scriptBat}
                     scriptPs1={qs.scriptPs1}
+                    scriptSh={qs.scriptSh}
+                    packageManager={qs.packageManager}
                     count={qs.selectedApps.length}
                   />
                 </div>
@@ -267,6 +341,8 @@ export default function QuickSetupApp() {
               script={qs.script}
               scriptBat={qs.scriptBat}
               scriptPs1={qs.scriptPs1}
+              scriptSh={qs.scriptSh}
+              packageManager={qs.packageManager}
               count={qs.selectedApps.length}
             />
           </div>

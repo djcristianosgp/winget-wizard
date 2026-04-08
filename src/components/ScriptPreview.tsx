@@ -3,17 +3,22 @@ import { Copy, Download, Check, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { PackageManager } from "@/data/apps";
 
 interface Props {
   script: string;
   scriptBat: string;
   scriptPs1: string;
+  scriptSh: string;
+  packageManager: PackageManager;
   count: number;
 }
 
-export function ScriptPreview({ script, scriptBat, scriptPs1, count }: Props) {
+export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, packageManager, count }: Props) {
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
+  const isWindows = packageManager === "winget";
+  const terminalFile = isWindows ? "quicksetup.ps1" : "quicksetup.sh";
 
   const copy = async () => {
     await navigator.clipboard.writeText(script);
@@ -79,7 +84,7 @@ export function ScriptPreview({ script, scriptBat, scriptPs1, count }: Props) {
           <span className="h-3 w-3 rounded-full bg-red-500/80" />
           <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
           <span className="h-3 w-3 rounded-full bg-green-500/80" />
-          <span className="ml-2 text-xs text-gray-500 font-mono">quicksetup.ps1</span>
+          <span className="ml-2 text-xs text-gray-500 font-mono">{terminalFile}</span>
         </div>
         <pre
           ref={preRef}
@@ -90,26 +95,38 @@ export function ScriptPreview({ script, scriptBat, scriptPs1, count }: Props) {
       </div>
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-2">
+      {isWindows ? (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => download(scriptBat, "quicksetup.bat")}
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5 border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-600"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Baixar .bat
+          </Button>
+          <Button
+            onClick={() => download(scriptPs1, "quicksetup.ps1")}
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5 border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-600"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Baixar .ps1
+          </Button>
+        </div>
+      ) : (
         <Button
-          onClick={() => download(scriptBat, "quicksetup.bat")}
+          onClick={() => download(scriptSh, "quicksetup.sh")}
           variant="outline"
           size="sm"
-          className="text-xs gap-1.5 border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-600"
+          className="w-full text-xs gap-1.5 border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-600"
         >
           <Download className="h-3.5 w-3.5" />
-          Baixar .bat
+          Baixar .sh
         </Button>
-        <Button
-          onClick={() => download(scriptPs1, "quicksetup.ps1")}
-          variant="outline"
-          size="sm"
-          className="text-xs gap-1.5 border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-600"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Baixar .ps1
-        </Button>
-      </div>
+      )}
 
       <Button
         onClick={copy}

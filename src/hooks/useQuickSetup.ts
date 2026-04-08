@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { apps, type AppCategory, type WingetApp } from "@/data/apps";
+import { apps, type AppCategory, type LinuxDistro, type OSPlatform, type PackageManager, type SetupApp } from "@/data/apps";
 
 export interface ScriptOptions {
   silent: boolean;
@@ -7,7 +7,8 @@ export interface ScriptOptions {
   disableInteractivity: boolean;
   scope: "none" | "user" | "machine";
   version: string;
-  consolidated: boolean;
+  linuxAutoYes: boolean;
+  linuxUseSudo: boolean;
 }
 
 interface WingetApiPackage {
@@ -40,22 +41,48 @@ const defaultOptions: ScriptOptions = {
   disableInteractivity: false,
   scope: "none",
   version: "",
-  consolidated: false,
+  linuxAutoYes: true,
+  linuxUseSudo: true,
 };
+
+function detectPlatform(): OSPlatform {
+  const platform = (navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
+  if (platform.includes("mac")) return "macos";
+  if (platform.includes("linux") || platform.includes("x11")) return "linux";
+  return "windows";
+}
+
+function getPackageManager(os: OSPlatform, distro: LinuxDistro): PackageManager {
+  if (os === "windows") return "winget";
+  if (os === "macos") return "brew";
+  return distro;
+}
+
+function getAppPackage(app: SetupApp, manager: PackageManager): string | undefined {
+  return app[manager];
+}
 
 export function useQuickSetup() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedMeta, setSelectedMeta] = useState<Record<string, WingetApp>>({});
+  const [selectedMeta, setSelectedMeta] = useState<Record<string, SetupApp>>({});
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<AppCategory | "all">("all");
   const [options, setOptions] = useState<ScriptOptions>(defaultOptions);
-  const [remoteApps, setRemoteApps] = useState<WingetApp[]>([]);
+  const [platform, setPlatform] = useState<OSPlatform>("windows");
+  const [linuxDistro, setLinuxDistro] = useState<LinuxDistro>("apt");
+  const [remoteApps, setRemoteApps] = useState<SetupApp[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteError, setRemoteError] = useState<string | null>(null);
 
+  const packageManager = useMemo(() => getPackageManager(platform, linuxDistro), [platform, linuxDistro]);
+
+  useEffect(() => {
+    setPlatform(detectPlatform());
+  }, []);
+
   useEffect(() => {
     const query = search.trim();
-    if (query.length < 2) {
+    if (platform !== "windows" || query.length < 2) {
       setRemoteApps([]);
       setRemoteLoading(false);
       setRemoteError(null);
@@ -87,9 +114,10 @@ export function useQuickSetup() {
         const data = (await response.json()) as { Packages?: WingetApiPackage[] };
         const mapped = (data.Packages ?? []).map((pkg) => ({
           id: pkg.Id,
+          winget: pkg.Id,
           name: pkg.Latest?.Name?.trim() || pkg.Id,
           category: inferCategory(pkg),
-        } satisfies WingetApp));
+        } satisfies SetupApp));
 
         setRemoteApps(mapped);
       } catch (error) {
@@ -105,28 +133,30 @@ export function useQuickSetup() {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [search]);
+  }, [search, platform]);
 
   const localFilteredApps = useMemo(() => {
     return apps.filter((app) => {
       const matchesCategory = activeCategory === "all" || app.category === activeCategory;
+      const packageName = getAppPackage(app, packageManager) ?? "";
       const matchesSearch =
         search === "" ||
         app.name.toLowerCase().includes(search.toLowerCase()) ||
-        app.id.toLowerCase().includes(search.toLowerCase());
+        app.id.toLowerCase().includes(search.toLowerCase()) ||
+        packageName.toLowerCase().includes(search.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [search, activeCategory]);
+  }, [search, activeCategory, packageManager]);
 
   const externalFilteredApps = useMemo(() => {
-    if (search.trim().length < 2) return [];
+    if (packageManager !== "winget" || search.trim().length < 2) return [];
 
     const localIds = new Set(localFilteredApps.map((a) => a.id));
     return remoteApps.filter((app) => {
       if (localIds.has(app.id)) return false;
       return activeCategory === "all" || app.category === activeCategory;
     });
-  }, [search, remoteApps, activeCategory, localFilteredApps]);
+  }, [search, remoteApps, activeCategory, localFilteredApps, packageManager]);
 
   const filteredApps = useMemo(() => {
     return [...localFilteredApps, ...externalFilteredApps];
@@ -134,20 +164,44 @@ export function useQuickSetup() {
 
   const sourceApps = useMemo(() => {
     const merged = [...apps, ...remoteApps];
-    const map = new Map<string, WingetApp>();
+    const map = new Map<string, SetupApp>();
     for (const app of merged) map.set(app.id, app);
     return Array.from(map.values());
   }, [remoteApps]);
 
   const knownAppsById = useMemo(() => {
-    const map = new Map<string, WingetApp>();
+    const map = new Map<string, SetupApp>();
     for (const app of apps) map.set(app.id, app);
     for (const app of remoteApps) map.set(app.id, app);
     for (const app of Object.values(selectedMeta)) map.set(app.id, app);
     return map;
   }, [remoteApps, selectedMeta]);
 
+  const isAppAvailable = useCallback((app: SetupApp) => Boolean(getAppPackage(app, packageManager)), [packageManager]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set<string>();
+      for (const id of prev) {
+        const app = knownAppsById.get(id);
+        if (app && isAppAvailable(app)) next.add(id);
+      }
+      return next;
+    });
+
+    setSelectedMeta((prev) => {
+      const next: Record<string, SetupApp> = {};
+      for (const [id, app] of Object.entries(prev)) {
+        if (isAppAvailable(app)) next[id] = app;
+      }
+      return next;
+    });
+  }, [packageManager, knownAppsById, isAppAvailable]);
+
   const toggleApp = useCallback((id: string) => {
+    const found = knownAppsById.get(id);
+    if (!found || !isAppAvailable(found)) return;
+
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -161,16 +215,15 @@ export function useQuickSetup() {
         return rest;
       }
 
-      const found = knownAppsById.get(id);
-      if (!found) return prev;
       return { ...prev, [id]: found };
     });
-  }, [knownAppsById]);
+  }, [knownAppsById, isAppAvailable]);
 
   const selectAll = useCallback(() => {
-    setSelectedIds(new Set(filteredApps.map((a) => a.id)));
-    setSelectedMeta(Object.fromEntries(filteredApps.map((a) => [a.id, a])));
-  }, [filteredApps]);
+    const available = filteredApps.filter(isAppAvailable);
+    setSelectedIds(new Set(available.map((a) => a.id)));
+    setSelectedMeta(Object.fromEntries(available.map((a) => [a.id, a])));
+  }, [filteredApps, isAppAvailable]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
@@ -180,36 +233,59 @@ export function useQuickSetup() {
   const selectedApps = useMemo(() => {
     return Array.from(selectedIds)
       .map((id) => knownAppsById.get(id))
-      .filter((app): app is WingetApp => Boolean(app));
-  }, [selectedIds, knownAppsById]);
+      .filter((app): app is SetupApp => Boolean(app) && isAppAvailable(app));
+  }, [selectedIds, knownAppsById, isAppAvailable]);
 
   const generateCommand = useCallback(
-    (app: WingetApp) => {
-      const parts = ["winget install", `--id ${app.id}`, "-e"];
-      if (options.silent) parts.push("--silent");
-      if (options.acceptAgreements) parts.push("--accept-package-agreements --accept-source-agreements");
-      if (options.disableInteractivity) parts.push("--disable-interactivity");
-      if (options.scope !== "none") parts.push(`--scope ${options.scope}`);
-      if (options.version.trim()) parts.push(`--version ${options.version.trim()}`);
-      return parts.join(" ");
+    (app: SetupApp) => {
+      const pkg = getAppPackage(app, packageManager);
+      if (!pkg) return "";
+
+      if (packageManager === "winget") {
+        const parts = ["winget install", `--id ${pkg}`, "-e"];
+        if (options.silent) parts.push("--silent");
+        if (options.acceptAgreements) parts.push("--accept-package-agreements --accept-source-agreements");
+        if (options.disableInteractivity) parts.push("--disable-interactivity");
+        if (options.scope !== "none") parts.push(`--scope ${options.scope}`);
+        if (options.version.trim()) parts.push(`--version ${options.version.trim()}`);
+        return parts.join(" ");
+      }
+
+      if (packageManager === "brew") {
+        return `brew install ${pkg}`;
+      }
+
+      const sudoPrefix = options.linuxUseSudo ? "sudo " : "";
+      if (packageManager === "apt") {
+        return `${sudoPrefix}apt install ${options.linuxAutoYes ? "-y " : ""}${pkg}`.trim();
+      }
+      if (packageManager === "dnf") {
+        return `${sudoPrefix}dnf install ${options.linuxAutoYes ? "-y " : ""}${pkg}`.trim();
+      }
+      return `${sudoPrefix}pacman -S ${options.linuxAutoYes ? "--noconfirm " : ""}${pkg}`.trim();
     },
-    [options]
+    [options, packageManager]
   );
 
   const script = useMemo(() => {
     if (selectedApps.length === 0) return "";
-    return selectedApps.map(generateCommand).join("\n");
+    return selectedApps.map(generateCommand).filter(Boolean).join("\n");
   }, [selectedApps, generateCommand]);
 
   const scriptBat = useMemo(() => {
-    if (!script) return "";
+    if (!script || packageManager !== "winget") return "";
     return `@echo off\necho === QuickSetup - Instalacao em lote via Winget ===\necho.\n\n${script}\n\necho.\necho === Instalacao concluida! ===\npause`;
-  }, [script]);
+  }, [script, packageManager]);
 
   const scriptPs1 = useMemo(() => {
-    if (!script) return "";
+    if (!script || packageManager !== "winget") return "";
     return `# QuickSetup - Instalacao em lote via Winget\nWrite-Host "=== QuickSetup - Iniciando instalacao ===" -ForegroundColor Cyan\n\n${script}\n\nWrite-Host "\\n=== Instalacao concluida! ===" -ForegroundColor Green`;
-  }, [script]);
+  }, [script, packageManager]);
+
+  const scriptSh = useMemo(() => {
+    if (!script || packageManager === "winget") return "";
+    return `#!/usr/bin/env bash\nset -e\n\necho "=== QuickSetup - Iniciando instalacao ==="\n\n${script}\n\necho "=== Instalacao concluida! ==="`;
+  }, [script, packageManager]);
 
   return {
     search, setSearch,
@@ -223,7 +299,12 @@ export function useQuickSetup() {
     selectedIds, toggleApp, selectAll, clearSelection,
     selectedApps,
     options, setOptions,
-    script, scriptBat, scriptPs1,
+    platform, setPlatform,
+    linuxDistro, setLinuxDistro,
+    packageManager,
+    script, scriptBat, scriptPs1, scriptSh,
     generateCommand,
+    isAppAvailable,
+    getAppPackage: (app: SetupApp) => getAppPackage(app, packageManager),
   };
 }
