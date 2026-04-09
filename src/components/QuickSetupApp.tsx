@@ -7,6 +7,7 @@ import { AppCard } from "@/components/AppCard";
 import { ScriptPreview } from "@/components/ScriptPreview";
 import { ScriptOptionsPanel } from "@/components/ScriptOptionsPanel";
 import { UpgradeTab } from "@/components/UpgradeTab";
+import { Footer } from "@/components/Footer";
 import { useQuickSetup } from "@/hooks/useQuickSetup";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
@@ -34,7 +35,8 @@ export default function QuickSetupApp() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className={`min-h-screen bg-background flex flex-col${tab === "install" && qs.selectedApps.length > 0 ? " pb-20" : ""}`}>
+      <div className="flex flex-1">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-foreground/30 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -390,6 +392,9 @@ export default function QuickSetupApp() {
           </div>
         )}
       </div>
+      </div>
+
+      <Footer />
 
       {/* Sticky selection bar */}
       {tab === "install" && qs.selectedApps.length > 0 && (
