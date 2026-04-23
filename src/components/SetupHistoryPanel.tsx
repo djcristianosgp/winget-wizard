@@ -16,9 +16,11 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
 function formatDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+    return dateFormatter.format(new Date(iso));
   } catch {
     return iso;
   }

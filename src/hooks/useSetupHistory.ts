@@ -41,7 +41,7 @@ export function useSetupHistory() {
     linuxDistro: LinuxDistro
   ): SetupEntry => {
     const entry: SetupEntry = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: name.trim() || "Setup sem nome",
       date: new Date().toISOString(),
       selectedIds,

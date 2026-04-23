@@ -11,7 +11,7 @@ import { SetupHistoryPanel } from "@/components/SetupHistoryPanel";
 import { UpgradeTab } from "@/components/UpgradeTab";
 import { Footer } from "@/components/Footer";
 import { useQuickSetup } from "@/hooks/useQuickSetup";
-import { useSetupHistory } from "@/hooks/useSetupHistory";
+import { useSetupHistory, type SetupEntry } from "@/hooks/useSetupHistory";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
@@ -52,7 +52,7 @@ export default function QuickSetupApp() {
     toast.success("Setup salvo no histórico!");
   };
 
-  const handleLoadHistory = (entry: import("@/hooks/useSetupHistory").SetupEntry) => {
+  const handleLoadHistory = (entry: SetupEntry) => {
     qs.loadSetup(entry.selectedIds, entry.platform, entry.linuxDistro);
     toast.success(`Setup "${entry.name}" carregado!`);
   };

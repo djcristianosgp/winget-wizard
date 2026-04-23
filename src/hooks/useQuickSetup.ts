@@ -198,17 +198,21 @@ export function useQuickSetup() {
 
   const packageManager = useMemo(() => getPackageManager(platform, linuxDistro), [platform, linuxDistro]);
 
-  // Persist state changes to localStorage and URL
+  // Debounced persist: saves state to localStorage and syncs the browser URL.
+  // Debouncing prevents excessive writes when apps are toggled in quick succession.
   useEffect(() => {
-    const state: PersistedState = {
-      selectedIds: Array.from(selectedIds),
-      platform,
-      linuxDistro,
-      options,
-    };
-    saveToStorage(state);
-    const url = buildShareURL(selectedIds, platform, linuxDistro, options);
-    updateBrowserURL(url);
+    const timer = setTimeout(() => {
+      const state: PersistedState = {
+        selectedIds: Array.from(selectedIds),
+        platform,
+        linuxDistro,
+        options,
+      };
+      saveToStorage(state);
+      const url = buildShareURL(selectedIds, platform, linuxDistro, options);
+      updateBrowserURL(url);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [selectedIds, platform, linuxDistro, options]);
 
   useEffect(() => {
