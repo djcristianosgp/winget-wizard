@@ -119,19 +119,50 @@ export interface Preset {
   name: string;
   description: string;
   appIds: string[];
+  icon?: string;
 }
 
 export const defaultPresets: Preset[] = [
   {
+    id: "dev-frontend",
+    name: "Dev Frontend",
+    description: "Ferramentas para desenvolvimento web frontend",
+    icon: "Code",
+    appIds: ["Microsoft.VisualStudioCode", "Google.Chrome", "Git.Git", "OpenJS.NodeJS", "pnpm.pnpm", "Figma.Figma"],
+  },
+  {
+    id: "dev-backend",
+    name: "Dev Backend",
+    description: "Ferramentas para desenvolvimento backend e APIs",
+    icon: "Server",
+    appIds: ["Microsoft.VisualStudioCode", "Git.Git", "Docker.DockerDesktop", "PostgreSQL.PostgreSQL.13", "OpenJS.NodeJS", "Postman.Postman"],
+  },
+  {
     id: "dev-essentials",
     name: "Dev Essentials",
     description: "Ferramentas essenciais para desenvolvedores",
+    icon: "Zap",
     appIds: ["Microsoft.VisualStudioCode", "Git.Git", "OpenJS.NodeJS", "Docker.DockerDesktop", "Microsoft.WindowsTerminal"],
+  },
+  {
+    id: "gamer",
+    name: "Gamer",
+    description: "Ferramentas para gamers e streamers",
+    icon: "Gamepad2",
+    appIds: ["Discord.Discord", "OBSProject.OBSStudio", "Streamlabs.Streamlabs", "VideoLAN.VLC"],
+  },
+  {
+    id: "escritorio",
+    name: "Escritório",
+    description: "Ferramentas de produtividade para o dia a dia",
+    icon: "Briefcase",
+    appIds: ["Google.Chrome", "Zoom.Zoom", "SlackTechnologies.Slack", "Notion.Notion", "Bitwarden.Bitwarden"],
   },
   {
     id: "basic-setup",
     name: "Setup Básico",
     description: "Aplicativos básicos para qualquer máquina",
+    icon: "Package",
     appIds: ["Google.Chrome", "7zip.7zip", "VideoLAN.VLC", "Notepad++.Notepad++", "Microsoft.PowerToys"],
   },
 ];

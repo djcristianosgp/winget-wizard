@@ -1,14 +1,17 @@
 import { useState, useMemo } from "react";
-import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2, Copy, Check, Monitor, Apple, Terminal } from "lucide-react";
+import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2, Copy, Check, Monitor, Apple, Terminal, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CategorySidebar } from "@/components/CategorySidebar";
 import { AppCard } from "@/components/AppCard";
 import { ScriptPreview } from "@/components/ScriptPreview";
 import { ScriptOptionsPanel } from "@/components/ScriptOptionsPanel";
+import { PresetsPanel } from "@/components/PresetsPanel";
+import { SetupHistoryPanel } from "@/components/SetupHistoryPanel";
 import { UpgradeTab } from "@/components/UpgradeTab";
 import { Footer } from "@/components/Footer";
 import { useQuickSetup } from "@/hooks/useQuickSetup";
+import { useSetupHistory } from "@/hooks/useSetupHistory";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
@@ -16,9 +19,11 @@ type Tab = "install" | "upgrade";
 
 export default function QuickSetupApp() {
   const qs = useQuickSetup();
+  const { history, saveSetup, deleteSetup } = useSetupHistory();
   const [tab, setTab] = useState<Tab>("install");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [barCopied, setBarCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const counts = useMemo(() => {
     const available = qs.sourceApps.filter((a) => qs.isAppAvailable(a));
@@ -32,6 +37,24 @@ export default function QuickSetupApp() {
     setBarCopied(true);
     toast.success("Script copiado!");
     setTimeout(() => setBarCopied(false), 2000);
+  };
+
+  const handleShare = async () => {
+    const url = qs.getShareURL();
+    await navigator.clipboard.writeText(url);
+    setShareCopied(true);
+    toast.success("Link de compartilhamento copiado!");
+    setTimeout(() => setShareCopied(false), 2000);
+  };
+
+  const handleSaveHistory = (name: string) => {
+    saveSetup(name, Array.from(qs.selectedIds), qs.platform, qs.linuxDistro);
+    toast.success("Setup salvo no histórico!");
+  };
+
+  const handleLoadHistory = (entry: import("@/hooks/useSetupHistory").SetupEntry) => {
+    qs.loadSetup(entry.selectedIds, entry.platform, entry.linuxDistro);
+    toast.success(`Setup "${entry.name}" carregado!`);
   };
 
   return (
@@ -88,12 +111,30 @@ export default function QuickSetupApp() {
 
         {tab === "install" && (
           <>
-            <div className="px-4 pt-4 pb-3">
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40 mb-2 px-1">Categorias</p>
-              <CategorySidebar active={qs.activeCategory} onSelect={(c) => { qs.setActiveCategory(c); setSidebarOpen(false); }} counts={counts} />
+            <div className="px-4 pt-4 pb-3 flex-1 overflow-y-auto scrollbar-thin space-y-5">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40 mb-2 px-1">Categorias</p>
+                <CategorySidebar active={qs.activeCategory} onSelect={(c) => { qs.setActiveCategory(c); setSidebarOpen(false); }} counts={counts} />
+              </div>
+
+              <div className="border-t border-sidebar-border pt-4">
+                <PresetsPanel onApply={(ids) => { qs.applyPreset(ids); setSidebarOpen(false); }} />
+              </div>
+
+              <div className="border-t border-sidebar-border pt-4 pb-1">
+                <SetupHistoryPanel
+                  history={history}
+                  currentIds={Array.from(qs.selectedIds)}
+                  currentPlatform={qs.platform}
+                  currentDistro={qs.linuxDistro}
+                  onSave={handleSaveHistory}
+                  onLoad={(entry) => { handleLoadHistory(entry); setSidebarOpen(false); }}
+                  onDelete={deleteSetup}
+                />
+              </div>
             </div>
 
-            <div className="mt-auto border-t border-sidebar-border p-4">
+            <div className="border-t border-sidebar-border p-4 shrink-0">
               <ScriptOptionsPanel options={qs.options} packageManager={qs.packageManager} onChange={qs.setOptions} />
             </div>
           </>
@@ -409,6 +450,18 @@ export default function QuickSetupApp() {
               </span>
             </div>
             <div className="h-4 w-px bg-border" />
+            <button
+              onClick={handleShare}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                shareCopied
+                  ? "bg-green-500 text-white shadow-sm shadow-green-200"
+                  : "bg-muted text-muted-foreground hover:bg-blue-50 hover:text-blue-600 border border-border"
+              }`}
+              title="Copiar link de compartilhamento"
+            >
+              {shareCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+              <span className="hidden sm:inline">{shareCopied ? "Link copiado!" : "Compartilhar"}</span>
+            </button>
             <button
               onClick={handleBarCopy}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
