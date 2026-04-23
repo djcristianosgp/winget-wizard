@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { apps, type AppCategory, type LinuxDistro, type OSPlatform, type PackageManager, type SetupApp } from "@/data/apps";
 import { searchBrew } from "@/lib/providers/brew";
 import { searchFlatpak } from "@/lib/providers/flatpak";
@@ -24,6 +24,7 @@ interface WingetApiPackage {
 }
 
 const apiBaseUrl = "https://api.winget.run";
+const STORAGE_KEY = "quicksetup-state";
 
 function inferCategory(pkg: WingetApiPackage): AppCategory {
   const name = pkg.Latest?.Name?.toLowerCase() ?? "";
@@ -60,23 +61,159 @@ function getAppPackage(app: SetupApp, manager: PackageManager): string | undefin
   return app[manager];
 }
 
+// ── URL helpers ───────────────────────────────────────────────────────────────
+
+interface URLState {
+  selectedIds: string[];
+  platform: OSPlatform;
+  linuxDistro: LinuxDistro;
+  options: Partial<ScriptOptions>;
+}
+
+export function parseURLState(): URLState | null {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has("os") && !params.has("apps")) return null;
+
+  const appsParam = params.get("apps") ?? "";
+  const selectedIds = appsParam ? appsParam.split(",").filter(Boolean) : [];
+
+  const osRaw = params.get("os");
+  const validOS: OSPlatform[] = ["windows", "macos", "linux"];
+  const platform: OSPlatform = validOS.includes(osRaw as OSPlatform)
+    ? (osRaw as OSPlatform)
+    : detectPlatform();
+
+  const distroRaw = params.get("distro");
+  const validDistros: LinuxDistro[] = ["apt", "dnf", "pacman", "flatpak"];
+  const linuxDistro: LinuxDistro = validDistros.includes(distroRaw as LinuxDistro)
+    ? (distroRaw as LinuxDistro)
+    : "apt";
+
+  const options: Partial<ScriptOptions> = {};
+  if (params.has("silent")) options.silent = params.get("silent") === "1";
+  if (params.has("accept")) options.acceptAgreements = params.get("accept") !== "0";
+  if (params.has("nointeract")) options.disableInteractivity = params.get("nointeract") === "1";
+
+  return { selectedIds, platform, linuxDistro, options };
+}
+
+export function buildShareURL(
+  selectedIds: Set<string>,
+  platform: OSPlatform,
+  linuxDistro: LinuxDistro,
+  options: ScriptOptions
+): string {
+  const params = new URLSearchParams();
+  if (selectedIds.size > 0) params.set("apps", Array.from(selectedIds).join(","));
+  params.set("os", platform);
+  if (platform === "linux") params.set("distro", linuxDistro);
+  if (options.silent) params.set("silent", "1");
+  if (!options.acceptAgreements) params.set("accept", "0");
+  if (options.disableInteractivity) params.set("nointeract", "1");
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+}
+
+function updateBrowserURL(url: string): void {
+  window.history.replaceState(null, "", url);
+}
+
+// ── LocalStorage helpers ──────────────────────────────────────────────────────
+
+interface PersistedState {
+  selectedIds: string[];
+  platform: OSPlatform;
+  linuxDistro: LinuxDistro;
+  options: ScriptOptions;
+}
+
+function loadFromStorage(): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PersistedState;
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(state: PersistedState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // storage might be full – fail silently
+  }
+}
+
+// ── Initialisation helpers ────────────────────────────────────────────────────
+
+interface InitialState {
+  selectedIds: Set<string>;
+  platform: OSPlatform;
+  linuxDistro: LinuxDistro;
+  options: ScriptOptions;
+}
+
+function resolveInitialState(): InitialState {
+  const urlState = parseURLState();
+  if (urlState) {
+    return {
+      selectedIds: new Set(urlState.selectedIds),
+      platform: urlState.platform,
+      linuxDistro: urlState.linuxDistro,
+      options: { ...defaultOptions, ...urlState.options },
+    };
+  }
+
+  const stored = loadFromStorage();
+  if (stored) {
+    return {
+      selectedIds: new Set(stored.selectedIds ?? []),
+      platform: stored.platform ?? detectPlatform(),
+      linuxDistro: stored.linuxDistro ?? "apt",
+      options: { ...defaultOptions, ...(stored.options ?? {}) },
+    };
+  }
+
+  return {
+    selectedIds: new Set<string>(),
+    platform: detectPlatform(),
+    linuxDistro: "apt",
+    options: defaultOptions,
+  };
+}
+
 export function useQuickSetup() {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const init = useRef(resolveInitialState()).current;
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(init.selectedIds);
   const [selectedMeta, setSelectedMeta] = useState<Record<string, SetupApp>>({});
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<AppCategory | "all">("all");
-  const [options, setOptions] = useState<ScriptOptions>(defaultOptions);
-  const [platform, setPlatform] = useState<OSPlatform>("windows");
-  const [linuxDistro, setLinuxDistro] = useState<LinuxDistro>("apt");
+  const [options, setOptions] = useState<ScriptOptions>(init.options);
+  const [platform, setPlatform] = useState<OSPlatform>(init.platform);
+  const [linuxDistro, setLinuxDistro] = useState<LinuxDistro>(init.linuxDistro);
   const [remoteApps, setRemoteApps] = useState<SetupApp[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteError, setRemoteError] = useState<string | null>(null);
 
   const packageManager = useMemo(() => getPackageManager(platform, linuxDistro), [platform, linuxDistro]);
 
+  // Debounced persist: saves state to localStorage and syncs the browser URL.
+  // Debouncing prevents excessive writes when apps are toggled in quick succession.
   useEffect(() => {
-    setPlatform(detectPlatform());
-  }, []);
+    const timer = setTimeout(() => {
+      const state: PersistedState = {
+        selectedIds: Array.from(selectedIds),
+        platform,
+        linuxDistro,
+        options,
+      };
+      saveToStorage(state);
+      const url = buildShareURL(selectedIds, platform, linuxDistro, options);
+      updateBrowserURL(url);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [selectedIds, platform, linuxDistro, options]);
 
   useEffect(() => {
     const query = search.trim();
@@ -267,6 +404,30 @@ export function useQuickSetup() {
     setSelectedMeta({});
   }, []);
 
+  /** Apply a preset: selects all available apps from the given ID list. */
+  const applyPreset = useCallback((appIds: string[]) => {
+    const available = appIds
+      .map((id) => knownAppsById.get(id))
+      .filter((app): app is SetupApp => Boolean(app) && isAppAvailable(app));
+    setSelectedIds(new Set(available.map((a) => a.id)));
+    setSelectedMeta(Object.fromEntries(available.map((a) => [a.id, a])));
+  }, [knownAppsById, isAppAvailable]);
+
+  /** Load a previously saved setup (from history). */
+  const loadSetup = useCallback((ids: string[], targetPlatform: OSPlatform, targetDistro: LinuxDistro) => {
+    setPlatform(targetPlatform);
+    setLinuxDistro(targetDistro);
+    // selectedIds will be filtered through the availability effect after platform changes,
+    // but we pre-filter here to avoid a brief flash of "all selected".
+    setSelectedIds(new Set(ids));
+    setSelectedMeta({});
+  }, []);
+
+  /** Returns the shareable URL for the current state. */
+  const getShareURL = useCallback(() => {
+    return buildShareURL(selectedIds, platform, linuxDistro, options);
+  }, [selectedIds, platform, linuxDistro, options]);
+
   const selectedApps = useMemo(() => {
     return Array.from(selectedIds)
       .map((id) => knownAppsById.get(id))
@@ -346,5 +507,8 @@ export function useQuickSetup() {
     generateCommand,
     isAppAvailable,
     getAppPackage: (app: SetupApp) => getAppPackage(app, packageManager),
+    applyPreset,
+    loadSetup,
+    getShareURL,
   };
 }
