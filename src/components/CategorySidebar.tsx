@@ -1,4 +1,4 @@
-import { Globe, Code, Wrench, MessageCircle, Play, Layers } from "lucide-react";
+import { Globe, Code, Wrench, MessageCircle, Play, Layers, Gamepad2 } from "lucide-react";
 import type { AppCategory } from "@/data/apps";
 import { categoryLabels } from "@/data/apps";
 import { cn } from "@/lib/utils";
@@ -10,9 +10,10 @@ const icons: Record<AppCategory | "all", React.ReactNode> = {
   utilities: <Wrench className="h-4 w-4" />,
   communication: <MessageCircle className="h-4 w-4" />,
   multimedia: <Play className="h-4 w-4" />,
+  games: <Gamepad2 className="h-4 w-4" />,
 };
 
-const categories: (AppCategory | "all")[] = ["all", "browsers", "development", "utilities", "communication", "multimedia"];
+const categories: (AppCategory | "all")[] = ["all", "browsers", "development", "utilities", "communication", "multimedia", "games"];
 
 interface Props {
   active: AppCategory | "all";
