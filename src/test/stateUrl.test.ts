@@ -44,6 +44,16 @@ describe("parseURLState", () => {
     expect(state!.linuxDistro).toBe("dnf");
   });
 
+  it("parses nix distro from URL", () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: { ...window.location, search: "?os=linux&distro=nix" },
+    });
+    const state = parseURLState();
+    expect(state!.platform).toBe("linux");
+    expect(state!.linuxDistro).toBe("nix");
+  });
+
   it("defaults distro to apt when invalid", () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -103,6 +113,14 @@ describe("buildShareURL", () => {
       { silent: false, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     expect(linuxUrl).toContain("distro=pacman");
+
+    const nixUrl = buildShareURL(
+      new Set(),
+      "linux",
+      "nix",
+      { silent: false, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+    );
+    expect(nixUrl).toContain("distro=nix");
 
     const winUrl = buildShareURL(
       new Set(),

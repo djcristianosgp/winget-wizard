@@ -10,18 +10,20 @@ interface Props {
   scriptBat: string;
   scriptPs1: string;
   scriptSh: string;
+  scriptNix: string;
   packageManager: PackageManager;
   count: number;
 }
 
-export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, packageManager, count }: Props) {
+export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, scriptNix, packageManager, count }: Props) {
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
   const isWindows = packageManager === "winget";
-  const terminalFile = isWindows ? "quicksetup.ps1" : "quicksetup.sh";
+  const isNix = packageManager === "nix";
+  const terminalFile = isWindows ? "quicksetup.ps1" : isNix ? "shell.nix" : "quicksetup.sh";
 
   const copy = async () => {
-    await navigator.clipboard.writeText(script);
+    await navigator.clipboard.writeText(isNix ? scriptNix : script);
     setCopied(true);
     toast.success("Script copiado!");
     setTimeout(() => setCopied(false), 2000);
@@ -90,7 +92,7 @@ export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, packageM
           ref={preRef}
           className="bg-gray-900 text-green-400 text-xs p-5 overflow-auto max-h-72 scrollbar-thin font-mono leading-relaxed whitespace-pre-wrap"
         >
-          {script}
+          {isNix ? scriptNix : script}
         </pre>
       </div>
 
@@ -116,6 +118,16 @@ export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, packageM
             Baixar .ps1
           </Button>
         </div>
+      ) : isNix ? (
+        <Button
+          onClick={() => download(scriptNix, "shell.nix")}
+          variant="outline"
+          size="sm"
+          className="w-full text-xs gap-1.5 border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-600"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Baixar shell.nix
+        </Button>
       ) : (
         <Button
           onClick={() => download(scriptSh, "quicksetup.sh")}
@@ -139,7 +151,7 @@ export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, packageM
         )}
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        {copied ? "Script Copiado!" : "Copiar Script"}
+        {copied ? "Copiado!" : isNix ? "Copiar shell.nix" : "Copiar Script"}
       </Button>
     </div>
   );

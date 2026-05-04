@@ -54,6 +54,7 @@ export function PackageDetailsModal({ app, open, selected, onClose, onToggle }: 
     { label: "DNF (Fedora)", value: app.dnf },
     { label: "Pacman (Arch)", value: app.pacman },
     { label: "Flatpak", value: app.flatpak },
+    { label: "Nix", value: app.nix },
   ].filter((pm): pm is { label: string; value: string } => Boolean(pm.value));
 
   const handleToggle = () => {
