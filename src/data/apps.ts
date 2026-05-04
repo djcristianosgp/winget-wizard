@@ -1,4 +1,4 @@
-export type AppCategory = "browsers" | "development" | "utilities" | "communication" | "multimedia";
+export type AppCategory = "browsers" | "development" | "utilities" | "communication" | "multimedia" | "games";
 
 export type OSPlatform = "windows" | "macos" | "linux";
 export type LinuxDistro = "apt" | "dnf" | "pacman" | "flatpak" | "nix";
@@ -28,6 +28,7 @@ export const categoryLabels: Record<AppCategory, string> = {
   utilities: "Utilitários",
   communication: "Comunicação",
   multimedia: "Multimídia",
+  games: "Jogos",
 };
 
 export const categoryIcons: Record<AppCategory, string> = {
@@ -36,6 +37,7 @@ export const categoryIcons: Record<AppCategory, string> = {
   utilities: "Wrench",
   communication: "MessageCircle",
   multimedia: "Play",
+  games: "Gamepad2",
 };
 
 export const apps: SetupApp[] = [
@@ -113,6 +115,17 @@ export const apps: SetupApp[] = [
   { id: "HandBrake.HandBrake", name: "HandBrake", category: "multimedia", winget: "HandBrake.HandBrake", brew: "--cask handbrake", apt: "handbrake", dnf: "HandBrake", pacman: "handbrake", nix: "handbrake" },
   { id: "GIMP.GIMP", name: "GIMP", category: "multimedia", winget: "GIMP.GIMP", brew: "gimp", apt: "gimp", dnf: "gimp", pacman: "gimp", nix: "gimp" },
   { id: "ShareX.ShareX", name: "ShareX", category: "multimedia", winget: "ShareX.ShareX" },
+  { id: "Valve.Steam", name: "Steam", category: "games", winget: "Valve.Steam", brew: "--cask steam", apt: "steam-installer", dnf: "steam", pacman: "steam" },
+  { id: "EpicGames.EpicGamesLauncher", name: "Epic Games Launcher", category: "games", winget: "EpicGames.EpicGamesLauncher" },
+  { id: "GOG.Galaxy", name: "GOG Galaxy", category: "games", winget: "GOG.Galaxy" },
+  { id: "Blizzard.BattleNet", name: "Battle.net", category: "games", winget: "Blizzard.BattleNet" },
+  { id: "ElectronicArts.EADesktop", name: "EA App", category: "games", winget: "ElectronicArts.EADesktop" },
+  { id: "Ubisoft.Connect", name: "Ubisoft Connect", category: "games", winget: "Ubisoft.Connect" },
+  { id: "Microsoft.GamingApp", name: "Xbox App", category: "games", winget: "Microsoft.GamingApp" },
+  { id: "Playnite.Playnite", name: "Playnite", category: "games", winget: "Playnite.Playnite", description: "Gerenciador de biblioteca de jogos" },
+  { id: "Parsec.Parsec", name: "Parsec", category: "games", winget: "Parsec.Parsec", description: "Streaming de jogos e desktop remoto" },
+  { id: "Nvidia.GeForceExperience", name: "GeForce Experience", category: "games", winget: "Nvidia.GeForceExperience", description: "Drivers e otimizações NVIDIA" },
+  { id: "RazerInc.RazerCentralSoftware", name: "Razer Synapse", category: "games", winget: "RazerInc.RazerCentralSoftware", description: "Software para periféricos Razer" },
 ];
 
 // Preset structure for future use
@@ -151,7 +164,7 @@ export const defaultPresets: Preset[] = [
     name: "Gamer",
     description: "Ferramentas para gamers e streamers",
     icon: "Gamepad2",
-    appIds: ["Discord.Discord", "OBSProject.OBSStudio", "Streamlabs.Streamlabs", "VideoLAN.VLC"],
+    appIds: ["Valve.Steam", "EpicGames.EpicGamesLauncher", "GOG.Galaxy", "Discord.Discord", "OBSProject.OBSStudio", "Parsec.Parsec"],
   },
   {
     id: "escritorio",

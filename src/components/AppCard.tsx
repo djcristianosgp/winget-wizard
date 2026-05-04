@@ -4,7 +4,7 @@ import { categoryLabels } from "@/data/apps";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PackageDetailsModal } from "@/components/PackageDetailsModal";
 import { cn } from "@/lib/utils";
-import { Globe, Code, Wrench, MessageCircle, Play, Ban, Info } from "lucide-react";
+import { Globe, Code, Wrench, MessageCircle, Play, Ban, Info, Gamepad2 } from "lucide-react";
 
 const catIcons = {
   browsers: Globe,
@@ -12,6 +12,7 @@ const catIcons = {
   utilities: Wrench,
   communication: MessageCircle,
   multimedia: Play,
+  games: Gamepad2,
 };
 
 const catColors: Record<string, string> = {
@@ -20,6 +21,7 @@ const catColors: Record<string, string> = {
   utilities: "bg-amber-100 text-amber-600",
   communication: "bg-green-100 text-green-600",
   multimedia: "bg-rose-100 text-rose-600",
+  games: "bg-purple-100 text-purple-600",
 };
 
 interface Props {
