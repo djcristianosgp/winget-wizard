@@ -143,9 +143,15 @@ export function ScriptOptionsPanel({ options, packageManager, onChange }: Props)
         </div>
       )}
 
-      {!isWindows && !isLinux && !isFlatpak && (
+      {!isWindows && !isLinux && !isFlatpak && packageManager !== "nix" && (
         <p className="text-[11px] text-sidebar-foreground/60 bg-white/5 rounded-md px-3 py-2 border border-white/10">
           Homebrew usa modo simples. Sem opções adicionais nesta etapa.
+        </p>
+      )}
+
+      {packageManager === "nix" && (
+        <p className="text-[11px] text-sidebar-foreground/60 bg-white/5 rounded-md px-3 py-2 border border-white/10">
+          Nix gera um arquivo <span className="font-mono">shell.nix</span> declarativo. Use <span className="font-mono">nix-shell shell.nix</span> para ativar o ambiente.
         </p>
       )}
 

@@ -84,7 +84,7 @@ export function parseURLState(): URLState | null {
     : detectPlatform();
 
   const distroRaw = params.get("distro");
-  const validDistros: LinuxDistro[] = ["apt", "dnf", "pacman", "flatpak"];
+  const validDistros: LinuxDistro[] = ["apt", "dnf", "pacman", "flatpak", "nix"];
   const linuxDistro: LinuxDistro = validDistros.includes(distroRaw as LinuxDistro)
     ? (distroRaw as LinuxDistro)
     : "apt";
@@ -463,6 +463,9 @@ export function useQuickSetup() {
       if (packageManager === "flatpak") {
         return `flatpak install ${options.linuxAutoYes ? "-y " : ""}flathub ${pkg}`.trim();
       }
+      if (packageManager === "nix") {
+        return `nix-env -iA nixpkgs.${pkg}`;
+      }
       return `${sudoPrefix}pacman -S ${options.linuxAutoYes ? "--noconfirm " : ""}${pkg}`.trim();
     },
     [options, packageManager]
@@ -484,9 +487,31 @@ export function useQuickSetup() {
   }, [script, packageManager]);
 
   const scriptSh = useMemo(() => {
-    if (!script || packageManager === "winget") return "";
+    if (!script || packageManager === "winget" || packageManager === "nix") return "";
     return `#!/usr/bin/env bash\nset -e\n\necho "=== QuickSetup - Iniciando instalacao ==="\n\n${script}\n\necho "=== Instalacao concluida! ==="`;
   }, [script, packageManager]);
+
+  const scriptNix = useMemo(() => {
+    if (packageManager !== "nix" || selectedApps.length === 0) return "";
+    const pkgLines = selectedApps
+      .map((app) => getAppPackage(app, "nix"))
+      .filter(Boolean)
+      .map((pkg) => `    ${pkg}`)
+      .join("\n");
+    return `# QuickSetup - Ambiente Nix declarativo (shell.nix)
+# Gerado automaticamente. Use: nix-shell shell.nix
+{ pkgs ? import <nixpkgs> {} }:
+
+pkgs.mkShell {
+  buildInputs = with pkgs; [
+${pkgLines}
+  ];
+
+  shellHook = ''
+    echo "=== QuickSetup - Ambiente Nix carregado ==="
+  '';
+}`;
+  }, [packageManager, selectedApps]);
 
   return {
     search, setSearch,
@@ -503,7 +528,7 @@ export function useQuickSetup() {
     platform, setPlatform,
     linuxDistro, setLinuxDistro,
     packageManager,
-    script, scriptBat, scriptPs1, scriptSh,
+    script, scriptBat, scriptPs1, scriptSh, scriptNix,
     generateCommand,
     isAppAvailable,
     getAppPackage: (app: SetupApp) => getAppPackage(app, packageManager),

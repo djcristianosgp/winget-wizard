@@ -188,7 +188,9 @@ export default function QuickSetupApp() {
                         ? "Buscar aplicativos (ex: git, node, firefox)..."
                         : qs.linuxDistro === "flatpak"
                           ? "Buscar no Flathub (ex: VLC, GIMP, Discord)..."
-                          : "Buscar aplicativos locais por nome..."
+                          : qs.linuxDistro === "nix"
+                            ? "Buscar pacotes Nix por nome..."
+                            : "Buscar aplicativos locais por nome..."
                   }
                   value={qs.search}
                   onChange={(e) => qs.setSearch(e.target.value)}
@@ -229,6 +231,14 @@ export default function QuickSetupApp() {
                     }`}
                   >
                     Flatpak
+                  </button>
+                  <button
+                    onClick={() => qs.setLinuxDistro("nix")}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      qs.linuxDistro === "nix" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Nix
                   </button>
                 </div>
               )}
@@ -283,7 +293,9 @@ export default function QuickSetupApp() {
                       ? "Busca unificada: resultados locais e externos (Homebrew). A fonte externa aparece com 2+ caracteres."
                       : qs.packageManager === "flatpak"
                         ? "Busca unificada: resultados locais e externos (Flathub). A fonte externa aparece com 2+ caracteres."
-                        : "Busca local por catalogo da aplicacao para o sistema selecionado."}
+                        : qs.packageManager === "nix"
+                          ? "Gera shell.nix declarativo com os pacotes selecionados do catálogo Nixpkgs."
+                          : "Busca local por catalogo da aplicacao para o sistema selecionado."}
                   {(qs.packageManager === "winget" || qs.packageManager === "brew" || qs.packageManager === "flatpak") && (
                     <span className="inline-flex items-center gap-1 text-green-600 font-medium">
                       <RefreshCw className="h-3 w-3" />
@@ -299,6 +311,7 @@ export default function QuickSetupApp() {
                     <button onClick={() => qs.setLinuxDistro("dnf")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "dnf" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Fedora (dnf)</button>
                     <button onClick={() => qs.setLinuxDistro("pacman")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "pacman" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Arch (pacman)</button>
                     <button onClick={() => qs.setLinuxDistro("flatpak")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "flatpak" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Flatpak</button>
+                    <button onClick={() => qs.setLinuxDistro("nix")} className={`px-2 py-0.5 rounded ${qs.linuxDistro === "nix" ? "bg-sky-600 text-white" : "bg-white text-sky-700 border border-sky-200"}`}>Nix</button>
                   </div>
                 )}
 
@@ -406,6 +419,7 @@ export default function QuickSetupApp() {
                     scriptBat={qs.scriptBat}
                     scriptPs1={qs.scriptPs1}
                     scriptSh={qs.scriptSh}
+                    scriptNix={qs.scriptNix}
                     packageManager={qs.packageManager}
                     count={qs.selectedApps.length}
                   />
@@ -427,6 +441,7 @@ export default function QuickSetupApp() {
               scriptBat={qs.scriptBat}
               scriptPs1={qs.scriptPs1}
               scriptSh={qs.scriptSh}
+              scriptNix={qs.scriptNix}
               packageManager={qs.packageManager}
               count={qs.selectedApps.length}
             />
