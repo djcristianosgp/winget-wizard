@@ -66,8 +66,8 @@ function getAppPackage(app: SetupApp, manager: PackageManager): string | undefin
 export function withWingetBootstrap(script: string, packageManager: PackageManager, installWingetIfMissing: boolean): string {
   if (!script) return "";
   if (packageManager !== "winget" || !installWingetIfMissing) return script;
-  const wingetBootstrap = `powershell -NoProfile -ExecutionPolicy Bypass -Command "if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Add-AppxPackage -Path 'https://aka.ms/getwinget' }"`;
-  return `${wingetBootstrap}\n${script}`;
+  const wingetBootstrapCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$wingetBundle = Join-Path $env:TEMP 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'; if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Invoke-WebRequest -Uri 'https://aka.ms/getwinget' -OutFile $wingetBundle; Add-AppxPackage -Path $wingetBundle }"`;
+  return `${wingetBootstrapCommand}\n${script}`;
 }
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
