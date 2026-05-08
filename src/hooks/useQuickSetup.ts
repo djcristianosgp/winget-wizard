@@ -8,6 +8,7 @@ export interface ScriptOptions {
   silent: boolean;
   acceptAgreements: boolean;
   disableInteractivity: boolean;
+  installWingetIfMissing: boolean;
   scope: "none" | "user" | "machine";
   version: string;
   linuxAutoYes: boolean;
@@ -38,6 +39,7 @@ const defaultOptions: ScriptOptions = {
   silent: false,
   acceptAgreements: true,
   disableInteractivity: false,
+  installWingetIfMissing: false,
   scope: "none",
   version: "",
   linuxAutoYes: true,
@@ -59,6 +61,13 @@ function getPackageManager(os: OSPlatform, distro: LinuxDistro): PackageManager 
 
 function getAppPackage(app: SetupApp, manager: PackageManager): string | undefined {
   return app[manager];
+}
+
+export function withWingetBootstrap(script: string, packageManager: PackageManager, installWingetIfMissing: boolean): string {
+  if (!script) return "";
+  if (packageManager !== "winget" || !installWingetIfMissing) return script;
+  const wingetBootstrap = `powershell -NoProfile -ExecutionPolicy Bypass -Command "if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Add-AppxPackage -Path 'https://aka.ms/getwinget' }"`;
+  return `${wingetBootstrap}\n${script}`;
 }
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
@@ -93,6 +102,7 @@ export function parseURLState(): URLState | null {
   if (params.has("silent")) options.silent = params.get("silent") === "1";
   if (params.has("accept")) options.acceptAgreements = params.get("accept") !== "0";
   if (params.has("nointeract")) options.disableInteractivity = params.get("nointeract") === "1";
+  if (params.has("bootstrapwinget")) options.installWingetIfMissing = params.get("bootstrapwinget") === "1";
 
   return { selectedIds, platform, linuxDistro, options };
 }
@@ -110,6 +120,7 @@ export function buildShareURL(
   if (options.silent) params.set("silent", "1");
   if (!options.acceptAgreements) params.set("accept", "0");
   if (options.disableInteractivity) params.set("nointeract", "1");
+  if (options.installWingetIfMissing) params.set("bootstrapwinget", "1");
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 }
 
@@ -473,8 +484,9 @@ export function useQuickSetup() {
 
   const script = useMemo(() => {
     if (selectedApps.length === 0) return "";
-    return selectedApps.map(generateCommand).filter(Boolean).join("\n");
-  }, [selectedApps, generateCommand]);
+    const baseScript = selectedApps.map(generateCommand).filter(Boolean).join("\n");
+    return withWingetBootstrap(baseScript, packageManager, options.installWingetIfMissing);
+  }, [selectedApps, generateCommand, packageManager, options.installWingetIfMissing]);
 
   const scriptBat = useMemo(() => {
     if (!script || packageManager !== "winget") return "";
