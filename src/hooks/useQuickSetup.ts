@@ -26,6 +26,13 @@ interface WingetApiPackage {
 
 const apiBaseUrl = "https://api.winget.run";
 const STORAGE_KEY = "quicksetup-state";
+const wingetBootstrapCommand = [
+  "powershell -NoProfile -ExecutionPolicy Bypass -Command",
+  "\"$wingetBundle = Join-Path $env:TEMP 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle';",
+  "if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {",
+  "Invoke-WebRequest -Uri 'https://aka.ms/getwinget' -OutFile $wingetBundle;",
+  "Add-AppxPackage -Path $wingetBundle }\"",
+].join(" ");
 
 function inferCategory(pkg: WingetApiPackage): AppCategory {
   const name = pkg.Latest?.Name?.toLowerCase() ?? "";
@@ -66,7 +73,6 @@ function getAppPackage(app: SetupApp, manager: PackageManager): string | undefin
 export function withWingetBootstrap(script: string, packageManager: PackageManager, installWingetIfMissing: boolean): string {
   if (!script) return "";
   if (packageManager !== "winget" || !installWingetIfMissing) return script;
-  const wingetBootstrapCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$wingetBundle = Join-Path $env:TEMP 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'; if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Invoke-WebRequest -Uri 'https://aka.ms/getwinget' -OutFile $wingetBundle; Add-AppxPackage -Path $wingetBundle }"`;
   return `${wingetBootstrapCommand}\n${script}`;
 }
 
