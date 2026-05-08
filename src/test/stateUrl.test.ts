@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { parseURLState, buildShareURL } from "@/hooks/useQuickSetup";
+import { parseURLState, buildShareURL, withWingetBootstrap } from "@/hooks/useQuickSetup";
 import { useSetupHistory } from "@/hooks/useSetupHistory";
 import { renderHook, act } from "@testing-library/react";
 
@@ -80,6 +80,15 @@ describe("parseURLState", () => {
     const state = parseURLState();
     expect(state!.options.acceptAgreements).toBe(false);
   });
+
+  it("parses bootstrapwinget=1 as installWingetIfMissing=true", () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: { ...window.location, search: "?os=windows&bootstrapwinget=1" },
+    });
+    const state = parseURLState();
+    expect(state!.options.installWingetIfMissing).toBe(true);
+  });
 });
 
 describe("buildShareURL", () => {
@@ -88,7 +97,7 @@ describe("buildShareURL", () => {
       new Set(["Google.Chrome", "Git.Git"]),
       "windows",
       "apt",
-      { silent: false, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+      { silent: false, acceptAgreements: true, disableInteractivity: false, installWingetIfMissing: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     expect(url).toContain("apps=Google.Chrome%2CGit.Git");
     expect(url).toContain("os=windows");
@@ -99,7 +108,7 @@ describe("buildShareURL", () => {
       new Set(),
       "macos",
       "apt",
-      { silent: false, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+      { silent: false, acceptAgreements: true, disableInteractivity: false, installWingetIfMissing: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     expect(url).not.toContain("apps=");
     expect(url).toContain("os=macos");
@@ -110,7 +119,7 @@ describe("buildShareURL", () => {
       new Set(),
       "linux",
       "pacman",
-      { silent: false, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+      { silent: false, acceptAgreements: true, disableInteractivity: false, installWingetIfMissing: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     expect(linuxUrl).toContain("distro=pacman");
 
@@ -118,7 +127,7 @@ describe("buildShareURL", () => {
       new Set(),
       "linux",
       "nix",
-      { silent: false, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+      { silent: false, acceptAgreements: true, disableInteractivity: false, installWingetIfMissing: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     expect(nixUrl).toContain("distro=nix");
 
@@ -126,7 +135,7 @@ describe("buildShareURL", () => {
       new Set(),
       "windows",
       "pacman",
-      { silent: false, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+      { silent: false, acceptAgreements: true, disableInteractivity: false, installWingetIfMissing: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     expect(winUrl).not.toContain("distro=");
   });
@@ -136,9 +145,19 @@ describe("buildShareURL", () => {
       new Set(),
       "windows",
       "apt",
-      { silent: true, acceptAgreements: true, disableInteractivity: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+      { silent: true, acceptAgreements: true, disableInteractivity: false, installWingetIfMissing: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     expect(url).toContain("silent=1");
+  });
+
+  it("includes bootstrapwinget=1 when installWingetIfMissing is true", () => {
+    const url = buildShareURL(
+      new Set(),
+      "windows",
+      "apt",
+      { silent: false, acceptAgreements: true, disableInteractivity: false, installWingetIfMissing: true, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+    );
+    expect(url).toContain("bootstrapwinget=1");
   });
 
   it("round-trips through parseURLState", () => {
@@ -147,7 +166,7 @@ describe("buildShareURL", () => {
       originalIDs,
       "linux",
       "dnf",
-      { silent: true, acceptAgreements: false, disableInteractivity: true, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
+      { silent: true, acceptAgreements: false, disableInteractivity: true, installWingetIfMissing: false, scope: "none", version: "", linuxAutoYes: true, linuxUseSudo: true }
     );
     const search = "?" + shareUrl.split("?")[1];
     Object.defineProperty(window, "location", {
@@ -162,6 +181,19 @@ describe("buildShareURL", () => {
     expect(parsed!.options.silent).toBe(true);
     expect(parsed!.options.acceptAgreements).toBe(false);
     expect(parsed!.options.disableInteractivity).toBe(true);
+  });
+});
+
+describe("withWingetBootstrap", () => {
+  it("prefixes script with winget installation command when option is enabled", () => {
+    const script = withWingetBootstrap("winget install --id Git.Git -e", "winget", true);
+    expect(script).toContain("https://aka.ms/getwinget");
+    expect(script).toContain("winget install --id Git.Git -e");
+  });
+
+  it("keeps script unchanged when option is disabled", () => {
+    const base = "winget install --id Git.Git -e";
+    expect(withWingetBootstrap(base, "winget", false)).toBe(base);
   });
 });
 

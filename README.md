@@ -12,6 +12,7 @@
   - **macOS** → `Homebrew` (`.sh`)
   - **Linux** → `apt`, `dnf`, `pacman` ou `Flatpak` (`.sh`)
 - **Prévia do script** — Visualize o script gerado em tempo real antes de copiar ou baixar.
+- **Bootstrap do Winget (Windows)** — Opcionalmente adiciona ao script a instalação automática do winget quando ele não estiver disponível.
 - **Copiar & Baixar** — Copie o script para a área de transferência ou baixe o arquivo pronto para execução.
 - **Atualização de apps** — Gere comandos `winget upgrade` para atualizar todos os apps ou um específico.
 - **Presets** — Conjuntos pré-configurados de apps (ex.: *Dev Essentials*, *Setup Básico*) para agilizar a configuração.

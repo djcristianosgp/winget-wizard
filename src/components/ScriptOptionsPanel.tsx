@@ -72,6 +72,21 @@ export function ScriptOptionsPanel({ options, packageManager, onChange }: Props)
             className="mt-0.5 shrink-0"
           />
         </div>
+
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Label htmlFor="wingetbootstrap" className="text-xs font-medium text-sidebar-foreground cursor-pointer">
+              Instalar winget se não estiver instalado (Windows)
+            </Label>
+            <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Adiciona comando para instalar o winget automaticamente</p>
+          </div>
+          <Switch
+            id="wingetbootstrap"
+            checked={options.installWingetIfMissing}
+            onCheckedChange={(v) => update({ installWingetIfMissing: v })}
+            className="mt-0.5 shrink-0"
+          />
+        </div>
       </div>}
 
       {isWindows && <div className="space-y-2 pt-1">
