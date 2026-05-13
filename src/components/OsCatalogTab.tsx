@@ -70,7 +70,7 @@ function OsCard({ os }: { os: OsRelease }) {
             className={`h-9 w-9 shrink-0 rounded-lg ${colors.bg} ${colors.text} flex items-center justify-center`}
           >
             {os.isTool ? (
-              <Wrench className="h-4.5 w-4.5" />
+              <Wrench className="h-4 w-4" />
             ) : (
               categoryIcons[os.category]
             )}

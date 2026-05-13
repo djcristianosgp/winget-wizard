@@ -315,7 +315,7 @@ export const osCatalog: OsRelease[] = [
     version: "Bookworm",
     category: "embedded",
     description:
-      "Sistema oficial para Raspberry Pi com ambiente desktop LXDE. Recomendado para uso geral com monitor.",
+      "Sistema oficial para Raspberry Pi com ambiente desktop. Recomendado para uso geral com monitor.",
     architecture: ["arm64", "arm"],
     officialUrl: "https://www.raspberrypi.com/software/operating-systems/",
     tags: ["raspberry-pi", "desktop", "arm"],
