@@ -11,6 +11,7 @@ import { SetupHistoryPanel } from "@/components/SetupHistoryPanel";
 import { UpgradeTab } from "@/components/UpgradeTab";
 import { OsCatalogTab } from "@/components/OsCatalogTab";
 import { Footer } from "@/components/Footer";
+import { SupportButton } from "@/components/SupportButton";
 import { useQuickSetup } from "@/hooks/useQuickSetup";
 import { useSetupHistory, type SetupEntry } from "@/hooks/useSetupHistory";
 import { toast } from "sonner";
@@ -33,11 +34,23 @@ export default function QuickSetupApp() {
     return c;
   }, [qs.sourceApps, qs.isAppAvailable]);
 
+  const SUPPORT_CTA_DELAY_MS = 800;
+
+  const showSupportCTA = () => {
+    setTimeout(() => {
+      toast("QuickSetup economizou seu tempo? ❤️", {
+        description: "Considere apoiar o projeto para mantê-lo vivo!",
+        duration: 5000,
+      });
+    }, SUPPORT_CTA_DELAY_MS);
+  };
+
   const handleBarCopy = async () => {
     await navigator.clipboard.writeText(qs.script);
     setBarCopied(true);
     toast.success("Script copiado!");
     setTimeout(() => setBarCopied(false), 2000);
+    showSupportCTA();
   };
 
   const handleShare = async () => {
@@ -439,6 +452,7 @@ export default function QuickSetupApp() {
                     scriptNix={qs.scriptNix}
                     packageManager={qs.packageManager}
                     count={qs.selectedApps.length}
+                    onAfterAction={showSupportCTA}
                   />
                 </div>
               </aside>
@@ -468,6 +482,7 @@ export default function QuickSetupApp() {
               scriptNix={qs.scriptNix}
               packageManager={qs.packageManager}
               count={qs.selectedApps.length}
+              onAfterAction={showSupportCTA}
             />
           </div>
         )}
@@ -515,6 +530,8 @@ export default function QuickSetupApp() {
           </div>
         </div>
       )}
+
+      <SupportButton />
     </div>
   );
 }

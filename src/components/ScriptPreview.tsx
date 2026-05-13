@@ -13,9 +13,10 @@ interface Props {
   scriptNix: string;
   packageManager: PackageManager;
   count: number;
+  onAfterAction?: () => void;
 }
 
-export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, scriptNix, packageManager, count }: Props) {
+export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, scriptNix, packageManager, count, onAfterAction }: Props) {
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
   const isWindows = packageManager === "winget";
@@ -27,6 +28,7 @@ export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, scriptNi
     setCopied(true);
     toast.success("Script copiado!");
     setTimeout(() => setCopied(false), 2000);
+    onAfterAction?.();
   };
 
   const download = (content: string, filename: string) => {
@@ -38,6 +40,7 @@ export function ScriptPreview({ script, scriptBat, scriptPs1, scriptSh, scriptNi
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${filename} baixado!`);
+    onAfterAction?.();
   };
 
   if (!script) {
