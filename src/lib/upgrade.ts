@@ -75,24 +75,30 @@ export function buildUpgradeCommand(manager: UpgradePackageManager, options: Upg
   return `${sudoPrefix}pacman -S${noConfirm}${dryFlag} ${target}`.trim();
 }
 
-export function buildUpgradeScript(manager: UpgradePackageManager, command: string, includeCleanup: boolean): string {
+export function buildUpgradeScript(
+  manager: UpgradePackageManager,
+  command: string,
+  includeCleanup: boolean,
+  useSudo: boolean
+): string {
   if (!command) return "";
 
   if (manager === "winget") {
-    return `# QuickSetup - Upgrade Windows (winget)\nWrite-Host "=== Iniciando atualizacao ===" -ForegroundColor Cyan\n${command}\nWrite-Host "=== Atualizacao concluida ===" -ForegroundColor Green`;
+    return `# QuickSetup - Upgrade Windows (winget)\nWrite-Host "=== Iniciando atualização ===" -ForegroundColor Cyan\n${command}\nWrite-Host "=== Atualização concluída ===" -ForegroundColor Green`;
   }
 
+  const sudoPrefix = useSudo ? "sudo " : "";
   const cleanup = includeCleanup
     ? manager === "brew"
       ? "\nbrew cleanup"
       : manager === "apt"
-        ? "\napt autoremove -y\napt autoclean"
+        ? `\n${sudoPrefix}apt autoremove -y\n${sudoPrefix}apt autoclean`
         : manager === "dnf"
-          ? "\ndnf autoremove -y"
-          : "\npacman -Sc --noconfirm"
+          ? `\n${sudoPrefix}dnf autoremove -y`
+          : `\n${sudoPrefix}pacman -Sc --noconfirm`
     : "";
 
-  return `#!/usr/bin/env bash\nset -e\n\necho "=== QuickSetup - Iniciando atualizacao ==="\n${command}${cleanup}\necho "=== Atualizacao concluida ==="`;
+  return `#!/usr/bin/env bash\nset -e\n\necho "=== QuickSetup - Iniciando atualização ==="\n${command}${cleanup}\necho "=== Atualização concluída ==="`;
 }
 
 export function getUpgradeScriptFilename(manager: UpgradePackageManager): string {

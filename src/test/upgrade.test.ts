@@ -73,15 +73,15 @@ describe("buildUpgradeCommand", () => {
 
 describe("buildUpgradeScript", () => {
   it("builds a powershell script for winget", () => {
-    const script = buildUpgradeScript("winget", "winget upgrade --all", false);
+    const script = buildUpgradeScript("winget", "winget upgrade --all", false, false);
     expect(script).toContain("Write-Host");
     expect(script).toContain("winget upgrade --all");
   });
 
   it("adds cleanup commands for apt scripts", () => {
-    const script = buildUpgradeScript("apt", "sudo apt update && sudo apt upgrade -y", true);
+    const script = buildUpgradeScript("apt", "sudo apt update && sudo apt upgrade -y", true, true);
     expect(script).toContain("#!/usr/bin/env bash");
-    expect(script).toContain("apt autoremove -y");
-    expect(script).toContain("apt autoclean");
+    expect(script).toContain("sudo apt autoremove -y");
+    expect(script).toContain("sudo apt autoclean");
   });
 });

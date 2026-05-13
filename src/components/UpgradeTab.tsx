@@ -43,8 +43,8 @@ export function UpgradeTab({ platform, linuxDistro, onPlatformChange, onLinuxDis
   const isWinget = packageManager === "winget";
   const upgradeCommand = useMemo(() => buildUpgradeCommand(packageManager, options), [packageManager, options]);
   const upgradeScript = useMemo(
-    () => buildUpgradeScript(packageManager, upgradeCommand, options.includeCleanup),
-    [packageManager, upgradeCommand, options.includeCleanup]
+    () => buildUpgradeScript(packageManager, upgradeCommand, options.includeCleanup, options.useSudo),
+    [packageManager, upgradeCommand, options.includeCleanup, options.useSudo]
   );
 
   const copy = async (text: string, which: "command" | "script") => {
