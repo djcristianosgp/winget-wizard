@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2, Copy, Check, Monitor, Apple, Terminal, Share2 } from "lucide-react";
+import { Search, CheckSquare, XSquare, Package, RefreshCw, Menu, X, Zap, Loader2, Copy, Check, Monitor, Apple, Terminal, Share2, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CategorySidebar } from "@/components/CategorySidebar";
@@ -9,13 +9,14 @@ import { ScriptOptionsPanel } from "@/components/ScriptOptionsPanel";
 import { PresetsPanel } from "@/components/PresetsPanel";
 import { SetupHistoryPanel } from "@/components/SetupHistoryPanel";
 import { UpgradeTab } from "@/components/UpgradeTab";
+import { OsCatalogTab } from "@/components/OsCatalogTab";
 import { Footer } from "@/components/Footer";
 import { useQuickSetup } from "@/hooks/useQuickSetup";
 import { useSetupHistory, type SetupEntry } from "@/hooks/useSetupHistory";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
-type Tab = "install" | "upgrade";
+type Tab = "install" | "upgrade" | "os-catalog";
 
 export default function QuickSetupApp() {
   const qs = useQuickSetup();
@@ -86,7 +87,7 @@ export default function QuickSetupApp() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-3 pb-0">
+        <div className="flex gap-1 p-3 pb-0 flex-wrap">
           <button
             onClick={() => setTab("install")}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 ${
@@ -106,6 +107,16 @@ export default function QuickSetupApp() {
             }`}
           >
             <RefreshCw className="h-3.5 w-3.5" /> Atualizar
+          </button>
+          <button
+            onClick={() => setTab("os-catalog")}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 ${
+              tab === "os-catalog"
+                ? "bg-blue-500/20 text-blue-300 shadow-inner"
+                : "text-sidebar-foreground/70 hover:bg-white/8 hover:text-sidebar-foreground"
+            }`}
+          >
+            <HardDrive className="h-3.5 w-3.5" /> S.O.
           </button>
         </div>
 
@@ -278,6 +289,12 @@ export default function QuickSetupApp() {
               <RefreshCw className="h-4 w-4 text-blue-500" /> Atualizar Aplicativos
             </h1>
           )}
+
+          {tab === "os-catalog" && (
+            <h1 className="text-base font-bold flex items-center gap-2 text-foreground">
+              <HardDrive className="h-4 w-4 text-blue-500" /> Catálogo de S.O.
+            </h1>
+          )}
         </header>
 
         {/* Content */}
@@ -426,7 +443,7 @@ export default function QuickSetupApp() {
                 </div>
               </aside>
             </>
-          ) : (
+          ) : tab === "upgrade" ? (
             <main className="flex-1 overflow-auto p-5 lg:p-6 max-w-2xl">
               <UpgradeTab
                 platform={qs.platform}
@@ -435,6 +452,8 @@ export default function QuickSetupApp() {
                 onLinuxDistroChange={qs.setLinuxDistro}
               />
             </main>
+          ) : (
+            <OsCatalogTab />
           )}
         </div>
 
