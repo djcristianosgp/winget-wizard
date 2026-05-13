@@ -428,7 +428,12 @@ export default function QuickSetupApp() {
             </>
           ) : (
             <main className="flex-1 overflow-auto p-5 lg:p-6 max-w-2xl">
-              <UpgradeTab />
+              <UpgradeTab
+                platform={qs.platform}
+                linuxDistro={qs.linuxDistro}
+                onPlatformChange={qs.setPlatform}
+                onLinuxDistroChange={qs.setLinuxDistro}
+              />
             </main>
           )}
         </div>
