@@ -35,7 +35,7 @@ export function SupportButton() {
           </DialogHeader>
           <div className="px-5 pb-5">
             <iframe
-              src="https://widget.livepix.gg/embed/e77892f2-efcf-4b47-b378-4f665535354c"
+              src={import.meta.env.VITE_LIVEPIX_URL ?? "https://widget.livepix.gg/embed/e77892f2-efcf-4b47-b378-4f665535354c"}
               className="w-full rounded-lg border border-border/50"
               height="420"
               title="Apoiar QuickSetup via LivePix"
