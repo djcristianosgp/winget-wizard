@@ -36,6 +36,16 @@ describe("buildUpgradeCommand", () => {
     expect(command).toContain("--accept-package-agreements --accept-source-agreements");
   });
 
+  it("builds winget dry-run without unsupported --whatif", () => {
+    const command = buildUpgradeCommand("winget", {
+      ...baseOptions,
+      dryRun: true,
+    });
+    expect(command).toContain("winget upgrade");
+    expect(command).not.toContain("--all");
+    expect(command).not.toContain("--whatif");
+  });
+
   it("builds brew command for specific package with dry-run", () => {
     const command = buildUpgradeCommand("brew", {
       ...baseOptions,

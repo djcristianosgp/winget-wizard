@@ -32,12 +32,15 @@ export function buildUpgradeCommand(manager: UpgradePackageManager, options: Upg
 
   if (manager === "winget") {
     const parts = ["winget upgrade"];
-    if (options.updateAll) parts.push("--all");
-    else parts.push(`--id ${target}`, "-e");
+    // winget upgrade does not provide a stable dry-run flag in current releases.
+    // When dryRun is enabled, keep the command in "list updates" mode.
+    if (!options.dryRun) {
+      if (options.updateAll) parts.push("--all");
+      else parts.push(`--id ${target}`, "-e");
+    }
     if (options.wingetIncludeUnknown) parts.push("--include-unknown");
     if (options.wingetAcceptAgreements) parts.push("--accept-package-agreements --accept-source-agreements");
     if (options.wingetDisableInteractivity) parts.push("--disable-interactivity");
-    if (options.dryRun) parts.push("--whatif");
     return parts.join(" ");
   }
 
@@ -84,7 +87,7 @@ export function buildUpgradeScript(
   if (!command) return "";
 
   if (manager === "winget") {
-    return `# QuickSetup - Upgrade Windows (winget)\nWrite-Host "=== Iniciando atualização ===" -ForegroundColor Cyan\n${command}\nWrite-Host "=== Atualização concluída ===" -ForegroundColor Green`;
+    return `# QuickSetup - Upgrade Windows (winget)\nWrite-Host "=== Iniciando atualizacao ===" -ForegroundColor Cyan\n${command}\nWrite-Host "=== Atualizacao concluida ===" -ForegroundColor Green`;
   }
 
   const sudoPrefix = useSudo ? "sudo " : "";

@@ -41,6 +41,9 @@ export function UpgradeTab({ platform, linuxDistro, onPlatformChange, onLinuxDis
   const packageManager = useMemo(() => getUpgradePackageManager(platform, linuxDistro), [platform, linuxDistro]);
   const isLinux = packageManager === "apt" || packageManager === "dnf" || packageManager === "pacman";
   const isWinget = packageManager === "winget";
+  const supportsCleanup = packageManager !== "winget";
+  const supportsSudo = isLinux;
+  const supportsAutoConfirm = isLinux;
   const upgradeCommand = useMemo(() => buildUpgradeCommand(packageManager, options), [packageManager, options]);
   const upgradeScript = useMemo(
     () => buildUpgradeScript(packageManager, upgradeCommand, options.includeCleanup, options.useSudo),
@@ -120,12 +123,21 @@ export function UpgradeTab({ platform, linuxDistro, onPlatformChange, onLinuxDis
           <Label htmlFor="dry-run" className="cursor-pointer">Simular atualização (dry-run)</Label>
           <Switch id="dry-run" checked={options.dryRun} onCheckedChange={(v) => setOptions((prev) => ({ ...prev, dryRun: v }))} />
         </div>
-        {isLinux && (
+        {isWinget && options.dryRun && (
+          <p className="text-xs text-muted-foreground">
+            No winget, a simulação apenas lista updates disponíveis e não executa upgrade.
+          </p>
+        )}
+        {supportsSudo && (
           <>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="use-sudo" className="cursor-pointer">Usar sudo</Label>
               <Switch id="use-sudo" checked={options.useSudo} onCheckedChange={(v) => setOptions((prev) => ({ ...prev, useSudo: v }))} />
             </div>
+          </>
+        )}
+        {supportsAutoConfirm && (
+          <>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="auto-confirm" className="cursor-pointer">Confirmação automática</Label>
               <Switch id="auto-confirm" checked={options.autoConfirm} onCheckedChange={(v) => setOptions((prev) => ({ ...prev, autoConfirm: v }))} />
@@ -148,10 +160,12 @@ export function UpgradeTab({ platform, linuxDistro, onPlatformChange, onLinuxDis
             </div>
           </>
         )}
-        <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="cleanup" className="cursor-pointer">Adicionar limpeza pós-upgrade no script</Label>
-          <Switch id="cleanup" checked={options.includeCleanup} onCheckedChange={(v) => setOptions((prev) => ({ ...prev, includeCleanup: v }))} />
-        </div>
+        {supportsCleanup && (
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="cleanup" className="cursor-pointer">Adicionar limpeza pós-upgrade no script</Label>
+            <Switch id="cleanup" checked={options.includeCleanup} onCheckedChange={(v) => setOptions((prev) => ({ ...prev, includeCleanup: v }))} />
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
